@@ -1,0 +1,8 @@
+node_modules
+screens
+instaproxy
+instagram-cookies.json
+.env
+package-lock.json
+.idea
+Instapi.iml

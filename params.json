@@ -1,0 +1,81 @@
+{
+  "profile": {
+    "doc_id": "33257018913889225",
+    "fb_api_req_friendly_name": "PolarisProfilePageContentQuery",
+    "variables": {
+      "enable_integrity_filters": true,
+      "id": "33743565904",
+      "render_surface": "PROFILE",
+      "__relay_internal__pv__PolarisProjectCannesLoggedInEnabledrelayprovider": true,
+      "__relay_internal__pv__PolarisCannesGuardianExperienceEnabledrelayprovider": true,
+      "__relay_internal__pv__PolarisCASB976ProfileEnabledrelayprovider": false,
+      "__relay_internal__pv__PolarisRepostsConsumptionEnabledrelayprovider": false
+    }
+  },
+  "posts": {
+    "doc_id": "25352076627737294",
+    "fb_api_req_friendly_name": "PolarisProfilePostsQuery",
+    "variables": {
+      "data": {
+        "count": 12,
+        "include_reel_media_seen_timestamp": true,
+        "include_relationship_info": true,
+        "latest_besties_reel_media": true,
+        "latest_reel_media": true
+      },
+      "username": "la_godille_",
+      "__relay_internal__pv__PolarisIsLoggedInrelayprovider": true
+    }
+  },
+  "reels": {
+    "doc_id": "24127588873492897",
+    "fb_api_req_friendly_name": "PolarisProfileReelsTabContentQuery",
+    "variables": {
+      "data": {
+        "include_feed_video": true,
+        "page_size": 12,
+        "target_user_id": "193803613"
+      }
+    }
+  },
+  "highlights_preview": {
+    "doc_id": "9814547265267853",
+    "fb_api_req_friendly_name": "PolarisProfileStoryHighlightsTrayContentQuery",
+    "variables": {
+      "user_id": "33743565904"
+    }
+  },
+  "highlights": {
+    "doc_id": "25300536909575943",
+    "fb_api_req_friendly_name": "PolarisStoriesV3HighlightsPageQuery",
+    "variables": {
+      "initial_reel_id": "highlight:18096658633157431",
+      "reel_ids": [
+        "highlight:18096658633157431",
+        "highlight:17886352894552295"
+      ],
+      "first": 3,
+      "last": 2
+    }
+  },
+  "stories": {
+    "doc_id": "25215717348091501",
+    "fb_api_req_friendly_name": "PolarisStoriesV3ReelPageStandaloneQuery",
+    "variables": {"reel_ids_arr":["14634719"]}
+  },
+  "search": {
+    "doc_id": "24146980661639222",
+    "fb_api_req_friendly_name": "PolarisSearchBoxRefetchableQuery",
+    "variables": {
+      "data": {
+        "context": "blended",
+        "include_reel": "true",
+        "query": "nhu",
+        "rank_token": "",
+        "search_session_id": "5c46fee3-6973-4111-87c8-3577358e8a6d",
+        "search_surface": "web_top_search"
+      },
+      "hasQuery": true
+    }
+  }
+}
