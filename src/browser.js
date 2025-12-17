@@ -97,7 +97,7 @@ async function startBrowser() {
     });
 
     // Load cookies from previous session (if available)
-    if (fs.existsSync(cookiesPath)) {
+    if (!isProduction && fs.existsSync(cookiesPath)) {
         const cookies = JSON.parse(fs.readFileSync(cookiesPath));
         await page.setCookie(...cookies);
         console.log("✅ Cookies loaded");
@@ -230,7 +230,7 @@ async function login(page) {
             const postData = req.postData();
 
             if(!ready) {
-                await saveCookies();
+                if(!isProduction) await saveCookies();
                 console.log("✅ Ready to serve");
                 ready = true;
             }

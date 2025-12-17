@@ -15,6 +15,10 @@ const {
 app.use(cors({origin: "*"}));
 app.use(express.json());
 
+app.get("/", async (req, res) => {
+    res.status(403).json({ error: "Unauthorized request" });
+})
+
 /**
  * Search profile by name
  */
