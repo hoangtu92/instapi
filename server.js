@@ -143,15 +143,15 @@ app.get("/posts", async (req, res) => {
         // Adjust variable params according to api
         obj.variables.username = username;
 
-        if(req.query.after) obj.variables.after = req.query.after;
-        if(req.query.before) obj.variables.before = req.query.before;
-        if(req.query.first) obj.variables.first = req.query.first;
-        if(req.query.last) obj.variables.last = req.query.last;
+        obj.variables.after = req.query.after || null;
+        obj.variables.before = req.query.before || null;
+        obj.variables.first = req.query.first || null;
+        obj.variables.last = req.query.last || null;
 
         const results = await graphql(obj);
 
         if(results.data)
-            response = Object.values(results.data).shift().edges.map(e => ({
+            response = results.data.xdt_api__v1__feed__user_timeline_graphql_connection.edges.map(e => ({
                 caption: e.node.caption?.text,
                 id: e.node.id,
                 code: e.node.code,

@@ -17,13 +17,21 @@ const client = axios.create({
 async function graphql(obj) {
 
     obj.variables = JSON.stringify(obj.variables);
+    obj.__req = obj.__req || '0';
     obj.__req = (parseInt(obj.__req, 16) + 1).toString(16);
+    let headers = graphqlData["request"].headers;
+    //headers["Cache-Control"] = 'no-cache, no-store, must-revalidate';
+    //headers["Pragma"] = 'no-cache';
+    //headers["Expires"] = '0';
+
+    graphqlData.request.originalPostData = new URLSearchParams(obj).toString();
+
 
     const res = await client.post(
         "https://www.instagram.com/graphql/query/",
         new URLSearchParams(obj).toString(),
         {
-            headers: graphqlData["request"].headers,
+            headers: headers,
         }
     );
 
