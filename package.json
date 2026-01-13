@@ -17,6 +17,8 @@
     "https-proxy-agent": "^7.0.6",
     "puppeteer": "^24.31.0",
     "puppeteer-extra": "^3.3.6",
-    "puppeteer-extra-plugin-stealth": "^2.11.2"
+    "puppeteer-extra-plugin-stealth": "^2.11.2",
+    "redis": "^5.10.0",
+    "ws": "^8.19.0"
   }
 }
