@@ -3,12 +3,13 @@ const cors = require("cors");
 const app = express();
 const {LOG} = require("./src/helpers");
 const {eventEmitter} = require("./src/eventEmitter");
-const {Redis, getCurrentConfig, setRandomAccount} = require("./src/redis");
+const {Redis, getCurrentConfig, setRandomAccount, setAccountByIdx} = require("./src/redis");
 const WebSocket = require("ws");
 require('dotenv').config();
 
-const {getProfile, searchProfile, getPosts, getStories, getHighLightsPreview, getHighLights, getMediaInfo, verifyCode, getReels
+const {getProfile, searchProfile, getPosts, getStories, getHighLightsPreview, getHighLights, getMediaInfo, getReels
 } = require("./src/instagramController");
+const fs = require("fs");
 
 
 app.use(cors({origin: "*"}));
@@ -59,10 +60,17 @@ app.get("/reels", getReels);
  */
 app.get("/media-info", getMediaInfo);
 
-/**
- * Verify instagram code
- */
-app.get("/verify", verifyCode);
+app.get("/gmail_postback", async (req, res) => {
+
+    if(!req.query.code) return res.status(403);
+
+    const { tokens } = await auth.getToken(req.query.code);
+    fs.writeFileSync('token.json', JSON.stringify(tokens));
+    console.log('Token saved to token.json');
+    res.status(200);
+
+});
+
 
 const wss = new WebSocket.Server({ port: 8080 });
 
@@ -79,26 +87,49 @@ wss.on("connection", (ws, req) => {
     LOG.log("Client connected");
 
     ws.on("message", async msg => {
+
+        const data = JSON.parse(msg.toString());
+
         LOG.log("Received:", msg.toString());
-        let state;
-        switch (msg) {
+        let state = await Redis.get("browser_state");
+        switch (data.action) {
+            case "verify":
+                eventEmitter.emit("verify", data.code);
+                break;
             case "refresh_session":
-                state = await Redis.get("browser_state");
                 if(state !== "active") {
                     eventEmitter.emit("refresh", null)
                 }
                 break;
-            case "change_account":
-                state = await Redis.get("browser_state");
+            case "random_account":
                 if(state !== "active") {
                     let config = await setRandomAccount();
-                    eventEmitter.emit("refresh", config)
+                    eventEmitter.emit("refresh", config);
                 }
+                break;
+
+            case "switch_account":
+                if(state !== "active") {
+                    data.idx = data.idx ?? 0;
+                    let config = await setAccountByIdx(data.idx);
+                    if(config)
+                        eventEmitter.emit("refresh", config);
+                }
+                break;
+
+            case "consent":
+                eventEmitter.emit("consent", null);
+                break;
+            case "verify_notify":
+                eventEmitter.emit("verify_notify", null);
+                break;
+            case "challenge":
+                eventEmitter.emit("challenge", null);
                 break;
         }
 
         // echo back
-        ws.send(`Server got: ${msg}`);
+        ws.send(`Server got: ${msg} ${state}`);
     });
 
     ws.on("close", () => {

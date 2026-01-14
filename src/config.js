@@ -8,6 +8,8 @@ const instaParamsPath = path.resolve("./params.json");
 let reloadTimer = null;
 let config = {};
 let loading = false;
+
+
 /**
  *
  * @param filename
@@ -35,6 +37,16 @@ async function randomAccount() {
     }
     return false
 
+}
+
+/**
+ *
+ * @param idx
+ * @returns {Promise<boolean|*>}
+ */
+async function getAccount(idx){
+    const accounts = JSON.parse(fs.readFileSync(accountsPath, "utf8"));
+    return accounts[idx] ?? false;
 }
 
 /**
@@ -95,4 +107,4 @@ fs.watch(configPath, { persistent: true }, () => {
     }, 100);
 });
 
-module.exports = {getConfig, getGraphqlData, saveGraphqlData, saveConfig, randomAccount}
+module.exports = {getConfig, getGraphqlData, saveGraphqlData, saveConfig, randomAccount, getAccount}

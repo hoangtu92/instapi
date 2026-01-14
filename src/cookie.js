@@ -42,8 +42,7 @@ async function clearCookies(page){
  * @returns {null|*}
  */
 async function getCookieHeader() {
-    let config = await getCurrentConfig();
-    const cookiesPath = await getCookiePath(config);
+    const cookiesPath = await getCookiePath();
     if (fs.existsSync(cookiesPath)) {
         const cookies = JSON.parse(fs.readFileSync(cookiesPath));
 
@@ -60,17 +59,20 @@ async function getCookieHeader() {
  * @returns {Promise<void>}
  */
 async function loadCookies(page) {
-    let config = await getCurrentConfig();
-    const cookiesPath = await getCookiePath(config);
+    const cookiesPath = await getCookiePath();
 
     // Load cookies from previous session (if available)
     if (fs.existsSync(cookiesPath)) {
         const cookies = JSON.parse(fs.readFileSync(cookiesPath));
         await page.setCookie(...cookies);
-        LOG.log("Cookies loaded", config.ig_username);
+        LOG.log("Cookies loaded");
     }
 }
 
+/**
+ *
+ * @returns {Promise<string>}
+ */
 async function getCookiePath() {
     let config = await getCurrentConfig();
     return path.resolve("cookies/" + crypto

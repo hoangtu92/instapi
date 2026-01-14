@@ -14,5 +14,36 @@
     "proxy_port": 5000,
     "proxy_username": "r_821af1be23-sid-55169006",
     "proxy_pass": "8b4c751955"
-  }
+  },
+  {
+    "ig_username": "fabrikinsta@hotmail.com",
+    "ig_password": "X1YXcDGEkQm*16",
+    "proxy_host": "v2.proxyempire.io",
+    "proxy_port": 5000,
+    "proxy_username": "r_821af1be23-sid-5i8df0k9",
+    "proxy_pass": "8b4c751955"
+  },
+  {
+    "ig_username": "fabrikinsta2@hotmail.com",
+    "ig_password": "SywsnsB892&19",
+    "proxy_host": "v2.proxyempire.io",
+    "proxy_port": 5000,
+    "proxy_username": "r_821af1be23-sid-df6k3b29",
+    "proxy_pass": "8b4c751955"
+  },
+  {
+    "ig_username": "fabrikinsta3@hotmail.com",
+    "ig_password": "SywsnsB892&19",
+    "proxy_host": "v2.proxyempire.io",
+    "proxy_port": 5000,
+    "proxy_username": "r_821af1be23-sid-8ib2hcg0",
+    "proxy_pass": "8b4c751955"
+  },{
+    "ig_username": "fabrikinsta4@hotmail.com",
+    "ig_password": "SywsnsB892&19",
+    "proxy_host": "v2.proxyempire.io",
+    "proxy_port": 5000,
+    "proxy_username": "r_821af1be23-sid-9f340cia",
+    "proxy_pass": "8b4c751955"
+  },
 ]

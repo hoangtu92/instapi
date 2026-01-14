@@ -1,7 +1,7 @@
 // redisClient.js
 const { createClient } = require('redis');
 const {LOG} = require("./helpers");
-const {getConfig, saveConfig, randomAccount} = require("./config");
+const {getConfig, saveConfig, randomAccount, getAccount} = require("./config");
 
 const Redis = createClient({
     url: process.env.REDIS_URL || 'redis://127.0.0.1:6379'
@@ -47,5 +47,17 @@ const setRandomAccount = async () => {
     await setConfig(config);
     return config;
 }
+/**
+ *
+ * @param idx
+ * @returns {Promise<void>}
+ */
+const setAccountByIdx = async(idx) => {
+    const config = await getAccount(idx);
+    if(config) {
+        await setConfig(config);
+    }
+    return config;
+}
 
-module.exports = {Redis, getCurrentConfig, setConfig, setRandomAccount};
+module.exports = {Redis, getCurrentConfig, setConfig, setRandomAccount, setAccountByIdx};

@@ -5,6 +5,7 @@ const crypto = require("crypto");
 const {Redis, getCurrentConfig} = require('./redis');
 const {getCookieHeader} = require("./cookie");
 const {LOG} = require("./helpers");
+const {eventEmitter} = require("./eventEmitter");
 
 const client = axios.create({
     timeout: 15000,
@@ -138,10 +139,12 @@ async function request(type, variables, hour = 1){
             // 2️⃣ cache miss → fetch
             const data = await graphql(type, variables);
 
-            // 3️⃣ store cache
-            await Redis.set(key, JSON.stringify(data), {
-                EX: hour * 1000 * 60* 60
-            });
+            if(data){
+                // 3️⃣ store cache
+                await Redis.set(key, JSON.stringify(data), {
+                    EX: hour * 1000 * 60* 60
+                });
+            }
         }
         finally{
             // Release lock

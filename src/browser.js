@@ -8,6 +8,7 @@ const {getGraphqlData, saveGraphqlData} = require("./config");
 const {LOG, waitForTimeout} = require("./helpers");
 const {Redis, getCurrentConfig} = require("./redis");
 const {eventEmitter} = require("./eventEmitter");
+const sendMail = require("./alertSystem");
 
 require('dotenv').config();
 
@@ -35,7 +36,7 @@ let ready = false;
  *
  * @returns {Promise<void>}
  */
-const closeModal = async () => {
+const closeModal = async (page) => {
     await page.evaluate(() => {
         const buttons = document.querySelectorAll('div[role="button"]');
         for (const btn of buttons) {
@@ -234,7 +235,7 @@ const triggerProfileQuery = async () => {
         await page.goto("https://www.instagram.com/dailyfashion_news/", {waitUntil: "networkidle2"});
     }
     catch (e) {
-        LOG.error("Profile", e.message)
+        LOG.error("Profile", e.message);
     }
 
 
@@ -281,7 +282,7 @@ const triggerStoryQuery = async () => {
         });
 
         if(clicked){
-            await closeModal();
+            await closeModal(page);
         }
         else{
             LOG.warn("Story not found")
@@ -314,7 +315,7 @@ const triggerHighLightQuery = async () => {
         });
 
         if(highLightClicked){
-            await closeModal();
+            await closeModal(page);
         }
 
     }
@@ -423,6 +424,8 @@ async function startUp(){
     }
     catch(e){
         LOG.error(e.message);
+        await logout();
+        await cleanup();
     }
 }
 
@@ -484,17 +487,12 @@ async function login(response) {
  */
 async function logout(){
 
-    if(!isPageOk()) await startBrowser();
     await clearCookies(page);
 
-    const client = await page.target().createCDPSession();
-    await client.send('Network.clearBrowserCookies');
-
-    await resetBrowser();
+    await cleanup();
 }
 
 
-let closing = false;
 /**
  *
  * @returns {Promise<void>}
@@ -548,11 +546,6 @@ async function verify(code) {
     await page.click('text/Continue');
 }
 
-// 📌 Check if page is still alive
-function isPageOk() {
-    return browser && browser.isConnected() && page && !page.isClosed();
-}
-
 function getVariables(type){
     return graphqlData[type].postData.variables;
 }
@@ -589,8 +582,7 @@ const cleanup = async (exitCode = 0) => {
                 }
             });
 
-            if(Object.keys(graphqlData).length > 0)
-                await saveGraphqlData(graphqlData);
+            eventEmitter.emit("cleanup:finished")
 
             await closeBrowser();
         }
@@ -600,6 +592,11 @@ const cleanup = async (exitCode = 0) => {
         process.exit(exitCode);
     }
 };
+
+eventEmitter.on("cleanup:finished", async () => {
+    if(Object.keys(graphqlData).length > 0)
+        await saveGraphqlData(graphqlData);
+})
 
 eventEmitter.on("request_update", async (res) => {
 
@@ -641,6 +638,7 @@ eventEmitter.on("request_update", async (res) => {
 
 
 
+eventEmitter.on("verify", verify);
 eventEmitter.on("logged_in", loggedIn);
 eventEmitter.on('login', login);
 
@@ -648,7 +646,7 @@ eventEmitter.on('refresh', refreshBrowser);
 eventEmitter.on('reset', resetBrowser);
 eventEmitter.on('logout', logout);
 
-eventEmitter.on('save_info', async (response) => {
+eventEmitter.on('save_info', async () => {
     try {
         await page.waitForSelector('text/Save info');
         await page.click('text/Save info');
@@ -660,10 +658,27 @@ eventEmitter.on('save_info', async (response) => {
 });
 
 
+eventEmitter.on('consent', async () => {
+    LOG.debug("Sending email")
+    //todo send email
+    await sendMail("Instagram API alert", "An instagram account has been inactive and requires consent in order to continue to serve")
+
+});
+eventEmitter.on('challenge', async () => {
+    //todo send email
+    await sendMail("Instagram API alert", "An instagram account has been inactive and requires to complete challenge in order to continue to serve")
+
+});
+eventEmitter.on('verify_notify', async () => {
+    LOG.debug("Need verify code. check email and send code to /verify?code=xxx");
+    //todo send email
+    await sendMail("Instagram API alert", "An instagram account has been inactive and requires verification in order to continue to serve")
+
+
+});
+
+
 module.exports = {
-    verify,
     graphqlData,
     getVariables,
-    cleanup,
-
 };

@@ -1,12 +1,13 @@
-const {getVariables, verify} = require("./browser");
+const {getVariables} = require("./browser");
 const {request, get_media_info} = require("./igGraphql");
 const {LOG} = require("./helpers");
-const {Redis, setRandomAccount} = require('./redis');
 const {eventEmitter} = require("./eventEmitter");
+const {setRandomAccount} = require("./redis");
 
-const errorHandler = (res, e) => {
+const errorHandler = async (res, e) => {
     LOG.error(e.message);
-    eventEmitter.emit("error", e)
+    let config = await setRandomAccount();
+    eventEmitter.emit("browser:refresh", config);
     res.status(500).json({error: "IG request failed: " + e.message});
 }
 /**
@@ -42,7 +43,7 @@ const searchProfile = async (req, res) => {
         res.json(response);
 
     } catch (e) {
-        errorHandler(res, e)
+        await errorHandler(res, e)
     }
 }
 /**
@@ -95,7 +96,7 @@ const getProfile = async (req, res) => {
         res.json(response);
 
     } catch (e) {
-        errorHandler(res, e)
+        await errorHandler(res, e)
     }
 }
 
@@ -159,7 +160,7 @@ const getPosts = async (req, res) => {
 
 
     } catch (e) {
-        errorHandler(res, e)
+        await errorHandler(res, e)
     }
 }
 
@@ -209,7 +210,7 @@ const getStories = async (req, res) => {
         res.json(response);
 
     } catch (e) {
-        errorHandler(res, e)
+        await errorHandler(res, e)
     }
 }
 /**
@@ -254,7 +255,7 @@ const getHighLightsPreview = async (req, res) => {
         });
 
     } catch (e) {
-        errorHandler(res, e)
+        await errorHandler(res, e)
     }
 }
 
@@ -304,7 +305,7 @@ const getHighLights = async (req, res) => {
         res.json(response);
 
     } catch (e) {
-        errorHandler(res, e)
+        await errorHandler(res, e)
     }
 }
 
@@ -352,7 +353,7 @@ const getReels = async (req, res) => {
         });
 
     } catch (e) {
-        errorHandler(res, e)
+        await errorHandler(res, e)
     }
 }
 
@@ -386,27 +387,9 @@ const getMediaInfo = async (req, res) => {
         });
 
     } catch (e) {
-        errorHandler(res, e)
+        await errorHandler(res, e)
     }
 }
-
-/**
- *
- * @param req
- * @param res
- * @returns {Promise<*>}
- */
-const verifyCode = async (req, res) => {
-    const code = req.query.code;
-    if (!code) return res.status(400).json({error: "No code provided"});
-
-    await verify(code);
-
-    res.json(["status", true]);
-}
-
-
-
 
 
 module.exports = {
@@ -417,6 +400,5 @@ module.exports = {
     getHighLightsPreview,
     getHighLights,
     getReels,
-    getMediaInfo,
-    verifyCode
+    getMediaInfo
 }
