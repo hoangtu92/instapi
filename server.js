@@ -1,15 +1,18 @@
 const express = require("express");
 const cors = require("cors");
 const app = express();
-const {LOG} = require("./src/helpers");
-const {eventEmitter} = require("./src/eventEmitter");
-const {Redis, getCurrentConfig, setRandomAccount, setAccountByIdx} = require("./src/redis");
+const LOG = require("./src/log");
+const eventEmitter = require("./src/eventEmitter");
+const Redis = require("./src/redis");
+const Config = require("./src/config");
 const WebSocket = require("ws");
+const fs = require("fs");
+
 require('dotenv').config();
 
 const {getProfile, searchProfile, getPosts, getStories, getHighLightsPreview, getHighLights, getMediaInfo, getReels
 } = require("./src/instagramController");
-const fs = require("fs");
+
 
 
 app.use(cors({origin: "*"}));
@@ -117,6 +120,15 @@ wss.on("connection", (ws, req) => {
                 }
                 break;
 
+            case "signup":
+                if(state !== "active") {
+                    if(data.idx){
+                        eventEmitter.emit("signup", data.idx);
+                    }
+
+                }
+                break;
+
             case "consent":
                 eventEmitter.emit("consent", null);
                 break;
@@ -147,7 +159,8 @@ const PORT = 3001;
 app.listen(PORT, async () => {
     LOG.log(`API server running on port ${PORT}`);
     LOG.log("WebSocket server running on ws://localhost:8080");
-    await Redis.set("browser_state", "inactive");
-    const config = await getCurrentConfig();
+
+    const config = await Config.getCurrentConfig();
     LOG.log("Current account", config.ig_username);
+    await Redis.set("browser_state", "inactive");
 });

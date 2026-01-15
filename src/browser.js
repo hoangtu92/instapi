@@ -3,12 +3,12 @@ const puppeteer = require("puppeteer-extra");
 const StealthPlugin = require('puppeteer-extra-plugin-stealth');
 const path = require("path");
 const os = require("os");
-const {loadCookies, saveCookies, clearCookies} = require("./cookie");
-const {getGraphqlData, saveGraphqlData} = require("./config");
-const {LOG, waitForTimeout} = require("./helpers");
-const {Redis, getCurrentConfig} = require("./redis");
-const {eventEmitter} = require("./eventEmitter");
+const Config = require("./config");
+const Redis = require("./redis");
+const eventEmitter = require("./eventEmitter");
 const sendMail = require("./alertSystem");
+const Helper = require("./helpers");
+const LOG = require("./log");
 
 require('dotenv').config();
 
@@ -22,53 +22,13 @@ puppeteer.use(StealthPlugin());
 
 let browser = null;
 let page = null;
-let graphqlData = getGraphqlData();
+let graphqlData = Config.getGraphqlData();
 
 const isProduction = process.env.NODE_ENV === "production";
 if (process.env.NODE_ENV === "production") {
     LOG.log("Running in production mode");
 }
 
-let action = 'init', previous_action = 'init';
-let ready = false;
-
-/**
- *
- * @returns {Promise<void>}
- */
-const closeModal = async (page) => {
-    await page.evaluate(() => {
-        const buttons = document.querySelectorAll('div[role="button"]');
-        for (const btn of buttons) {
-            const svgClose = btn.querySelector('svg[aria-label="Close"]');
-            if (svgClose) {
-                btn.scrollIntoView({block: "center"});
-                btn.click();
-            }
-        }
-    })
-}
-
-
-/**
- *
- * @param headers
- * @returns {*}
- */
-const convertHeaders = (headers) => {
-    // Convert HTTP/2 :authority → Host
-    if (headers[':authority'] && !headers['host']) {
-        headers['host'] = headers[':authority'];
-    }
-
-    // Remove HTTP/2 pseudo-headers (INVALID in HTTP/1.1)
-    delete headers[':authority'];
-    delete headers[':method'];
-    delete headers[':path'];
-    delete headers[':scheme'];
-
-    return headers;
-}
 
 /**
  *
@@ -76,68 +36,43 @@ const convertHeaders = (headers) => {
  * @returns {(function(): void)|*}
  */
 function attachPageEvents(page) {
+
+    let action = 'init', previous_action = 'init';
+
     /**
      *
-     * @param res
+     * @param request
      * @returns {Promise<void>}
      */
-    const onRequestFinished = async (res) => {
+    const onRequestFinished = async (request) => {
         try{
-            const type = res.resourceType();
-            const response = res.response();
-            if(!res.url().includes("https://www.instagram.com")) return;
+            const type = request.resourceType();
+            const response = request.response();
+            if(!request.url().includes("https://www.instagram.com")) return;
 
             let status = response.status();
             if(status < 200 || status > 300) return;
 
             if(type === "document"){
-                if (res.url().includes("codeentry")) {
+                if (request.url().includes("codeentry")) {
                     action = "verify"
                 }
-                else if (res.url().includes("challenge")) {
+                else if (request.url().includes("challenge")) {
                     action = "challenge"
                 }
-                else if (res.url().includes('/accounts/login')) {
+                else if (request.url().includes('/accounts/login')) {
                     action = "login"
                 }
-                else if (res.url().includes("onetap")) {
+                else if (request.url().includes("onetap")) {
                     action = "save_info"
                 }
-                else if (res.url().includes("consent")) {
+                else if (request.url().includes("consent")) {
                     action = "consent"
                 }
-                else{
-                    action = "logged_in"
-                }
-
-                if(action !== previous_action){
-
-                    LOG.log(status, type, res.url());
-                    LOG.info("From ", previous_action, "to", action);
-
-                    eventEmitter.emit(action, res);
-                    previous_action = action;
-                }
             }
-        }
-        catch (e) {
-            LOG.error(e.message)
-        }
-    }
-    /**
-     *
-     * @returns {Promise<void>}
-     * @param response
-     */
-    const onPageResponse = async (response) => {
+            else if (request.method() === 'POST' && request.url().includes('/graphql/query')) {
 
-        try{
-            let status = response.status();
-            if(status < 200 || status > 300) return;
-
-            const request = response.request();
-
-            if (request.method() === 'POST' && request.url().includes('/graphql/query')) {
+                action = "logged_in"
 
                 const postData = await request.fetchPostData();
                 const postDataObj = new URLSearchParams(postData);
@@ -151,7 +86,7 @@ function attachPageEvents(page) {
                     obj.variables = JSON.parse(obj.variables);
 
                 let headers = request.headers()
-                headers = convertHeaders(headers);
+                headers = Helper.convertHeaders(headers);
 
                 if(request_name){
 
@@ -167,191 +102,27 @@ function attachPageEvents(page) {
 
                 }
 
-                if(!ready) {
-                    eventEmitter.emit("serve", request)
-                    ready = true;
-                    await saveCookies(page);
-                }
+                if(action !== previous_action){
 
+                    LOG.log(status, type, request.url());
+                    LOG.info("State change from", previous_action, "to", action);
+
+                    eventEmitter.emit(action, request);
+                    previous_action = action;
+                }
             }
         }
         catch (e) {
             LOG.error(e.message)
         }
-
     }
-
-    page.on("response", onPageResponse);
     page.on("requestfinished", onRequestFinished);
 
     return () => {
-        page.off("response", onPageResponse);
         page.off("requestfinished", onRequestFinished);
     };
 }
 
-/**
- *
- * @returns {Promise<void>}
- */
-const triggerSearchQuery = async () => {
-    try{
-        LOG.info("Searching")
-        await page.evaluate(() => {
-            document.querySelector('[aria-label="Search"]')
-                .closest('div')
-                .click();
-        });
-
-        const input = page.locator('input[placeholder="Search"]');
-        await input.wait();
-
-        await page.type(
-            'input[placeholder="Search"]',
-            'daily',
-            { delay: 500 }   // 500 ms between each keystroke
-        );
-
-        await page.evaluate(() => {
-            document.querySelector('[aria-label="Search"]')
-                .closest('div')
-                .click();
-        });
-    }
-    catch (e) {
-        LOG.error(e.message)
-    }
-
-    await waitForTimeout();
-}
-
-/**
- *
- * @returns {Promise<void>}
- */
-const triggerProfileQuery = async () => {
-    try{
-        LOG.info("Retrieve Profile")
-        await page.goto("https://www.instagram.com/dailyfashion_news/", {waitUntil: "networkidle2"});
-    }
-    catch (e) {
-        LOG.error("Profile", e.message);
-    }
-
-
-    await waitForTimeout();
-}
-/**
- *
- * @returns {Promise<void>}
- */
-const triggerReelQuery = async () => {
-    try{
-        LOG.info("Retrieve Reels")
-        await page.goto("https://www.instagram.com/dailyfashion_news/reels/", {waitUntil: "networkidle2"});
-    }
-    catch (e) {
-        LOG.error("Reels", e.message)
-    }
-
-    await waitForTimeout();
-}
-
-/**
- *
- * @returns {Promise<void>}
- */
-const triggerStoryQuery = async () => {
-    try{
-        LOG.info("Retrieve story");
-        const clicked = await page.evaluate(() => {
-            const buttons = document.querySelectorAll('div[role="button"]');
-
-            for (const btn of buttons) {
-                const hasCanvas = btn.querySelector('canvas');
-                const img = btn.querySelector('img[alt*="profile picture"]');
-
-                if (hasCanvas && img) {
-                    btn.scrollIntoView({ block: "center" });
-                    btn.click();
-                    return true;
-                }
-            }
-
-            return false;
-        });
-
-        if(clicked){
-            await closeModal(page);
-        }
-        else{
-            LOG.warn("Story not found")
-        }
-    }
-    catch (e) {
-        LOG.error(e.message)
-    }
-
-
-    await waitForTimeout();
-}
-/**
- *
- * @returns {Promise<void>}
- */
-const triggerHighLightQuery = async () => {
-    try{
-        LOG.info("Retrieve highlight");
-        const highLightClicked = await page.evaluate(() => {
-            const highlight = document.querySelector('a[href*="/stories/highlights"]');
-            if(highlight){
-                const btn = highlight.querySelector('div[role="button"]');
-                if(btn){
-                    btn.click();
-                    return true;
-                }
-            }
-            return false;
-        });
-
-        if(highLightClicked){
-            await closeModal(page);
-        }
-
-    }
-    catch (e) {
-        LOG.error(e.message)
-    }
-    await waitForTimeout();
-}
-
-/**
- *
- * @param response
- * @returns {Promise<void>}
- */
-const loggedIn = async (response) =>{
-
-    try{
-
-        await waitForTimeout();
-
-        await triggerSearchQuery();
-
-        await triggerProfileQuery();
-
-        await triggerReelQuery();
-
-        await triggerStoryQuery();
-
-        await triggerHighLightQuery();
-
-    }
-    catch (e){
-        LOG.error(e.message)
-    }
-
-}
 
 /**
  *
@@ -359,7 +130,7 @@ const loggedIn = async (response) =>{
  */
 async function startBrowser() {
 
-    let config = await getCurrentConfig();
+    let config = await Config.getCurrentConfig();
     await Redis.set("browser_state", "active")
 
     try{
@@ -408,7 +179,7 @@ async function startBrowser() {
         password: config.proxy_pass
     });
 
-    await loadCookies(page);
+    await Helper.loadCookies(page);
 
     detach = attachPageEvents(page);
 }
@@ -424,25 +195,47 @@ async function startUp(){
     }
     catch(e){
         LOG.error(e.message);
-        await logout();
         await cleanup();
     }
 }
+
 
 /**
  *
  * @returns {Promise<void>}
  */
-async function byPassCookieConsent() {
+async function signUp(idx){
     try{
-        await page.waitForSelector("text/Decline optional cookies");
-        await page.click("text/Decline optional cookies");
-        await takeScreenshot("cookie-consent");
+        await startBrowser();
+        LOG.info("Try to signup ")
+        await page.goto("https://www.instagram.com/accounts/emailsignup/?next=", {waitUntil: "networkidle2"});
+
+        let accounts = Config.readJson(path.resolve(process.cwd(), "accounts.json"));
+
+        if(accounts[idx]){
+            const newAccount = accounts[idx];
+            LOG.info("Login process", newAccount.ig_username);
+
+            await Helper.byPassCookieConsent(page);
+
+            await Helper.waitForTimeout();
+
+            await page.waitForSelector('input[type="text"]', {visible: true});
+
+            await page.type('input[type="text"]', newAccount.ig_username, {delay: 50 + Math.random() * 100});
+            await page.type('input[type="password"]', newAccount.ig_password, {delay: 50 + Math.random() * 100});
+
+        }
+
     }
-    catch(e) {
-        LOG.info("No cookie consent")
+    catch(e){
+        LOG.error(e.message);
+        await cleanup();
     }
 }
+
+
+
 /**
  *
  * @param response
@@ -451,13 +244,13 @@ async function byPassCookieConsent() {
 async function login(response) {
 
     try{
-        let config = await getCurrentConfig();
+        let config = await Config.getCurrentConfig();
 
         LOG.info("Login process", config.ig_username);
 
-        await byPassCookieConsent();
+        await Helper.byPassCookieConsent(page);
 
-        await waitForTimeout();
+        await Helper.waitForTimeout();
 
         await page.waitForSelector('input[type="text"]', {visible: true});
 
@@ -467,29 +260,16 @@ async function login(response) {
         await page.waitForSelector('text/Log in', {visible: true});
         await page.click('text/Log in');
         LOG.info("Submitting login information");
-        await takeScreenshot("submit-login");
 
-        await waitForTimeout();
+        await Helper.waitForTimeout();
 
-        await byPassCookieConsent();
+        await Helper.byPassCookieConsent(page);
 
     }
     catch (e) {
         LOG.error(e.message);
-        await takeScreenshot("login-error");
-        //await resetBrowser();
+        await Helper.takeScreenshot(page, "login-error");
     }
-}
-
-/**
- *
- * @returns {Promise<void>}
- */
-async function logout(){
-
-    await clearCookies(page);
-
-    await cleanup();
 }
 
 
@@ -535,32 +315,7 @@ async function resetBrowser() {
     await refreshBrowser();
 }
 
-/**
- *
- * @param code
- * @returns {Promise<void>}
- */
-async function verify(code) {
-    await takeScreenshot("verify");
-    await page.type('text/Code', code, {delay: 50 + Math.random() * 100});
-    await page.click('text/Continue');
-}
 
-function getVariables(type){
-    return graphqlData[type].postData.variables;
-}
-
-
-/**
- *
- * @param name
- * @returns {Promise<void>}
- */
-async function takeScreenshot(name){
-    if (!page.isClosed()) {
-        await page.screenshot({path: `screens/${name}.png`, fullPage: true});
-    }
-}
 
 /**
  *
@@ -595,7 +350,7 @@ const cleanup = async (exitCode = 0) => {
 
 eventEmitter.on("cleanup:finished", async () => {
     if(Object.keys(graphqlData).length > 0)
-        await saveGraphqlData(graphqlData);
+        Config.saveGraphqlData(graphqlData);
 })
 
 eventEmitter.on("request_update", async (res) => {
@@ -623,7 +378,7 @@ eventEmitter.on("request_update", async (res) => {
             LOG.log("Highlight api");
             try {
                 LOG.log('Response finished');
-                await waitForTimeout()
+                await Helper.waitForTimeout()
                 await cleanup();
             } catch (err) {
                 LOG.error('Response failed:', err.message);
@@ -638,13 +393,47 @@ eventEmitter.on("request_update", async (res) => {
 
 
 
-eventEmitter.on("verify", verify);
-eventEmitter.on("logged_in", loggedIn);
+eventEmitter.on("verify", async (code) => {
+    await Helper.takeScreenshot(page, "verify");
+    await page.type('text/Code', code, {delay: 50 + Math.random() * 100});
+    await page.click('text/Continue');
+}
+);
+eventEmitter.on("logged_in", async () =>{
+
+    try{
+        await Helper.saveCookies(page);
+
+        await Helper.waitForTimeout();
+
+        await Helper.triggerSearchQuery(page);
+
+        await Helper.triggerProfileQuery(page);
+
+        await Helper.triggerReelQuery(page);
+
+        await Helper.triggerStoryQuery(page);
+
+        await Helper.triggerHighLightQuery(page);
+
+    }
+    catch (e){
+        LOG.error(e.message)
+    }
+
+});
+
+eventEmitter.on("signup", signUp);
+
 eventEmitter.on('login', login);
 
 eventEmitter.on('refresh', refreshBrowser);
 eventEmitter.on('reset', resetBrowser);
-eventEmitter.on('logout', logout);
+
+eventEmitter.on('logout', async () => {
+    await Helper.clearCookies(page);
+    await cleanup();
+});
 
 eventEmitter.on('save_info', async () => {
     try {
@@ -678,7 +467,4 @@ eventEmitter.on('verify_notify', async () => {
 });
 
 
-module.exports = {
-    graphqlData,
-    getVariables,
-};
+module.exports = {graphqlData};

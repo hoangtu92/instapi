@@ -1,110 +1,121 @@
 const fs = require("fs");
 const path = require("path");
-const {LOG} = require("./helpers");
-const accountsPath = path.resolve("./accounts.json");
-const configPath = path.resolve("./config.json");
-const instaParamsPath = path.resolve("./params.json");
+const LOG = require("./log");
+const Redis = require("./redis");
 
-let reloadTimer = null;
-let config = {};
-let loading = false;
+class Config {
 
-
-/**
- *
- * @param filename
- * @returns {Promise<null|any>}
- */
-async function readJson(filename) {
-    try {
-        const data = await fs.promises.readFile(filename, 'utf8');
-        return JSON.parse(data);
-    } catch (err) {
-        LOG.error('Failed to read JSON:', err.message);
-        return null;
-    }
-}
-
-/**
- *
- * @returns {*}
- */
-async function randomAccount() {
-    const accounts = JSON.parse(fs.readFileSync(accountsPath, "utf8"));
-    if (accounts) {
-        const index = Math.floor(Math.random() * accounts.length);
-        return accounts[index];
-    }
-    return false
-
-}
-
-/**
- *
- * @param idx
- * @returns {Promise<boolean|*>}
- */
-async function getAccount(idx){
-    const accounts = JSON.parse(fs.readFileSync(accountsPath, "utf8"));
-    return accounts[idx] ?? false;
-}
-
-/**
- *
- * @returns {Promise<*|null>}
- */
-function getGraphqlData(){
-    return JSON.parse(fs.readFileSync(instaParamsPath));
-}
-
-/**
- *
- * @param graphqlData
- * @returns {Promise<void>}
- */
-async function saveGraphqlData(graphqlData){
-    return fs.writeFileSync(instaParamsPath, JSON.stringify(graphqlData, null, 2))
-}
-/**
- *
- */
-function loadConfig() {
-    if (loading) return;
-    loading = true;
-
-    try {
-        const raw = fs.readFileSync(configPath, "utf8");
-        const parsed = JSON.parse(raw);   // parse first
-        config = parsed;                  // atomic swap
-        LOG.info('Config loaded');
-    } catch (err) {
-        LOG.error('Config load failed:', err.message);
-    } finally {
-        loading = false;
+    constructor() {
+        this.accountsPath = path.resolve(process.cwd(), "accounts.json");
+        this.configsPath  = path.resolve(process.cwd(), "config.json");
+        this.paramsPath   = path.resolve(process.cwd(), "params.json");
     }
 
+    /**
+     *
+     * @param filename
+     * @returns {Promise<null|any>}
+     */
+    readJson(filename) {
+        try {
+            const data = fs.readFileSync(filename, "utf8");
+            return JSON.parse(data);
+        } catch (err) {
+            LOG.error("Failed to read JSON:", err.message);
+            return null;
+        }
+    }
+
+    /**
+     *
+     * @param filename
+     * @param object
+     * @returns {boolean}
+     */
+    saveJson(filename, object) {
+        try {
+            fs.writeFileSync(
+                filename,
+                JSON.stringify(object, null, 2),
+                { encoding: "utf8" }
+            );
+            return true;
+        } catch (err) {
+            LOG.error("Failed to write JSON:", err.message);
+            return false;
+        }
+    }
+
+    /**
+     *
+     * @returns {Promise<*|null>}
+     */
+    getGraphqlData() {
+        return this.readJson(this.paramsPath);
+    }
+
+    /**
+     *
+     * @param graphqlData
+     * @returns {boolean}
+     */
+    saveGraphqlData(graphqlData) {
+        return this.saveJson(this.paramsPath, graphqlData);
+    }
+
+    /**
+     *
+     * @returns {Promise<*|null>}
+     */
+    async getCurrentConfig() {
+
+        try {
+            const cached = await Redis.get("instapi_config");
+            if(cached) return JSON.parse(cached);
+        }
+        catch (e) {
+            LOG.error("Invalid config in Redis, reloading from file");
+        }
+
+
+        const fileConfig = this.readJson(this.configsPath);
+        if (fileConfig) {
+            await Redis.set("instapi_config", JSON.stringify(fileConfig));
+            return fileConfig;
+        }
+    }
+
+    /**
+     *
+     * @param config
+     * @returns {Promise<*>}
+     */
+    async setCurrentConfig(config) {
+        this.saveJson(this.configsPath, config);
+        await Redis.set("instapi_config", JSON.stringify(config));
+        return config;
+    }
+
+    /**
+     *
+     * @returns {Promise<boolean|*>}
+     */
+    async setRandomAccount() {
+        const currentConfig = await this.getCurrentConfig();
+        const accounts = this.readJson(this.accountsPath);
+
+        if (!accounts || accounts.length === 0) return false;
+
+        const candidates = accounts.filter(
+            acc => acc.ig_username !== currentConfig?.ig_username
+        );
+
+        if (candidates.length === 0) return false;
+
+        const index = Math.floor(Math.random() * candidates.length);
+        return this.setCurrentConfig(candidates[index]);
+    }
 
 }
 
-loadConfig();
-
-/**
- *
- * @param data
- */
-function saveConfig(data){
-    return fs.writeFileSync(configPath, JSON.stringify(data, null, 2))
-}
-
-function getConfig(){
-    return config;
-}
-
-fs.watch(configPath, { persistent: true }, () => {
-    clearTimeout(reloadTimer);
-    reloadTimer = setTimeout(async () => {
-        loadConfig();
-    }, 100);
-});
-
-module.exports = {getConfig, getGraphqlData, saveGraphqlData, saveConfig, randomAccount, getAccount}
+module.exports = new Config();

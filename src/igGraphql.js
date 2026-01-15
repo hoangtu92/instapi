@@ -1,11 +1,9 @@
 const axios = require("axios");
-const {HttpsProxyAgent} = require("https-proxy-agent");
 let {graphqlData} = require("./browser")
-const crypto = require("crypto");
-const {Redis, getCurrentConfig} = require('./redis');
-const {getCookieHeader} = require("./cookie");
-const {LOG} = require("./helpers");
-const {eventEmitter} = require("./eventEmitter");
+const Redis = require('./redis');
+const LOG = require("./log");
+const Helper = require("./helpers");
+
 
 const client = axios.create({
     timeout: 15000,
@@ -20,16 +18,7 @@ const client = axios.create({
     },
 });
 
-/**
- *
- * @returns {HttpsProxyAgent<string>}
- */
-async function getHttpAgent() {
-    let config = await getCurrentConfig();
-    let proxy_str = `http://${config.proxy_username}:${config.proxy_pass}@${config.proxy_host}:${config.proxy_port}`;
-    return new HttpsProxyAgent(proxy_str);
 
-}
 
 /**
  *
@@ -40,7 +29,7 @@ async function getHttpAgent() {
 async function graphql(type, variables) {
 
     let requestData = graphqlData[type];
-    const cookie = await getCookieHeader();
+    const cookie = await Helper.getCookieHeader();
 
     if(!requestData) {
         throw new Error("Request data not found");
@@ -60,7 +49,7 @@ async function graphql(type, variables) {
     headers["cookie"] = cookie;
 
     postData.variables =  variables;
-    let httpsAgent = await getHttpAgent();
+    let httpsAgent = await Helper.getHttpAgent();
 
     const res = await client.post(
         "https://www.instagram.com/graphql/query",
@@ -81,8 +70,8 @@ async function graphql(type, variables) {
  */
 async function get_media_info(pk){
 
-    let httpsAgent = await getHttpAgent();
-    const cookie = await getCookieHeader();
+    let httpsAgent = await Helper.getHttpAgent();
+    const cookie = await Helper.getCookieHeader();
 
     let headers = {
         'content-type': 'application/json; charset=utf-8',
@@ -104,21 +93,13 @@ async function get_media_info(pk){
 
 /**
  *
- * @param ms
- * @returns {Promise<unknown>}
- */
-function sleep(ms) {
-    return new Promise(r => setTimeout(r, ms));
-}
-/**
- *
  * @param type
  * @param variables
  * @param hour
  * @returns {Promise<*>}
  */
 async function request(type, variables, hour = 1){
-    const key = cacheKey(type, variables);
+    const key = Helper.cacheKey(type, variables);
     const lockKey = `${key}:lock`;
 
     // 1️⃣ try cache
@@ -155,7 +136,7 @@ async function request(type, variables, hour = 1){
 
     // 3️⃣ Another request is fetching → wait & retry
     for (let i = 0; i < 20; i++) { // ~2 seconds max
-        await sleep(100);
+        await new Promise(r => setTimeout(r, 100))
 
         const retry = await Redis.get(key);
         if (retry) {
@@ -168,20 +149,6 @@ async function request(type, variables, hour = 1){
 }
 
 
-/**
- *
- * @returns {string}
- * @param type
- * @param variables
- */
-function cacheKey(type, variables) {
-    const hash = crypto
-        .createHash("sha256")
-        .update(JSON.stringify(variables))
-        .digest("hex");
-
-    return `graphql:${type}:${hash}`;
-}
 
 
 module.exports = {request, get_media_info};

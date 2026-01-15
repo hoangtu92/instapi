@@ -1,12 +1,12 @@
-const {getVariables} = require("./browser");
+const {graphqlData} = require("./browser");
 const {request, get_media_info} = require("./igGraphql");
-const {LOG} = require("./helpers");
-const {eventEmitter} = require("./eventEmitter");
-const {setRandomAccount} = require("./redis");
+const LOG = require("./log");
+const Config = require("./config");
+const eventEmitter = require("./eventEmitter");
 
 const errorHandler = async (res, e) => {
     LOG.error(e.message);
-    let config = await setRandomAccount();
+    let config = await Config.setRandomAccount();
     eventEmitter.emit("browser:refresh", config);
     res.status(500).json({error: "IG request failed: " + e.message});
 }
@@ -24,7 +24,7 @@ const searchProfile = async (req, res) => {
     try {
         let response = [];
 
-        let variables = getVariables(type);
+        let variables = graphqlData[type].postData.variables;
 
         variables.data.query = username;
 
@@ -59,7 +59,7 @@ const getProfile = async (req, res) => {
 
     try {
         const type = "PolarisProfilePageContentQuery";
-        let variables = getVariables(type);
+        let variables = graphqlData[type].postData.variables
 
         variables.id = id;
 
@@ -115,7 +115,7 @@ const getPosts = async (req, res) => {
         let response;
 
         const type = "PolarisProfilePostsQuery";
-        let variables = getVariables(type);
+        let variables = graphqlData[type].postData.variables
 
         // Adjust variable params according to api
         variables.username = username;
@@ -178,7 +178,7 @@ const getStories = async (req, res) => {
         let response = [];
 
         const type = "PolarisStoriesV3ReelPageStandaloneQuery";
-        let variables = getVariables(type);
+        let variables = graphqlData[type].postData.variables
 
 
         // Adjust variable params according to api
@@ -230,7 +230,7 @@ const getHighLightsPreview = async (req, res) => {
         };
 
         const type = "PolarisProfileStoryHighlightsTrayContentQuery";
-        let variables = getVariables(type);
+        let variables = graphqlData[type].postData.variables
 
         if (req.query.after) variables.after = req.query.after;
         if (req.query.before) variables.before = req.query.before;
@@ -324,7 +324,7 @@ const getReels = async (req, res) => {
         let edges = [];
 
         const type = "PolarisProfileReelsTabContentQuery";
-        let variables = getVariables(type);
+        let variables = graphqlData[type].postData.variables
 
         if (req.query.after) variables.after = req.query.after;
         if (req.query.before) variables.before = req.query.before;
