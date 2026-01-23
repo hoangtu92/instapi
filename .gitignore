@@ -7,3 +7,7 @@ package-lock.json
 .idea
 Instapi.iml
 cookies/*
+accounts.json
+credentials.json
+params.json
+token.json

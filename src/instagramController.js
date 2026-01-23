@@ -2,7 +2,6 @@ const {graphqlData} = require("./browser");
 const {request, get_media_info} = require("./igGraphql");
 const LOG = require("./log");
 const Config = require("./config");
-const Redis = require("./redis");
 
 const errorHandler = async (res, e) => {
     LOG.error(e.message);
