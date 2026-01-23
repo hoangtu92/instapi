@@ -7,11 +7,8 @@ const Redis = require("./redis");
 const errorHandler = async (res, e) => {
     LOG.error(e.message);
 
-    let state = await Redis.get("browser:state");
-    if(state !=='active'){
-        await Config.setRandomAccount();
-        process.exit(0)
-    }
+    await Config.setRandomAccount();
+    process.exit(0);
 
     res.status(500).json({error: "Please try again"});
 }

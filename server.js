@@ -2,7 +2,6 @@ const express = require("express");
 const cors = require("cors");
 const app = express();
 const LOG = require("./src/log");
-const Redis = require("./src/redis");
 const Config = require("./src/config");
 const fs = require("fs");
 
@@ -11,7 +10,6 @@ require('dotenv').config();
 const {getProfile, searchProfile, getPosts, getStories, getHighLightsPreview, getHighLights, getMediaInfo, getReels
 } = require("./src/instagramController");
 const {google} = require("googleapis");
-const websocket = require("./src/websocket");
 
 
 
@@ -87,11 +85,6 @@ const PORT = 3001;
 app.listen(PORT, async () => {
     LOG.log(`API server running on port ${PORT}`);
 
-
     const config = await Config.getCurrentConfig();
     LOG.log("Current account", config.ig_username);
-    await Redis.set("browser:state", "inactive");
-
-    websocket();
-
 });
