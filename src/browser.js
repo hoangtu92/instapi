@@ -9,6 +9,8 @@ const eventEmitter = require("./eventEmitter");
 const sendMail = require("./alertSystem");
 const Helper = require("./helpers");
 const LOG = require("./log");
+const { spawn } = require("child_process");
+
 
 require('dotenv').config();
 
@@ -55,7 +57,7 @@ function attachPageEvents(page) {
 
             if(type === "document"){
                 if (request.url().includes("codeentry")) {
-                    action = "verify"
+                    action = "verify_notify"
                 }
                 else if (request.url().includes("challenge")) {
                     action = "challenge"
@@ -71,45 +73,16 @@ function attachPageEvents(page) {
                 }
             }
             else if (request.method() === 'POST' && request.url().includes('/graphql/query')) {
-
                 action = "logged_in"
+            }
 
-                const postData = await request.fetchPostData();
-                const postDataObj = new URLSearchParams(postData);
+            if(action !== previous_action){
 
+                LOG.log(status, type, request.url());
+                LOG.info("State change from", previous_action, "to", action);
 
-                const request_name = postDataObj.get("fb_api_req_friendly_name");
-
-                let obj = Object.fromEntries(postDataObj);
-
-                if(obj.variables)
-                    obj.variables = JSON.parse(obj.variables);
-
-                let headers = request.headers()
-                headers = Helper.convertHeaders(headers);
-
-                if(request_name){
-
-                    if(!queryStack.includes(request_name)){
-                        queryStack.push(request_name);
-                        eventEmitter.emit("request_update", {response, request_name})
-                    }
-
-                    graphqlData[request_name] = {
-                        headers: headers,
-                        postData: obj
-                    };
-
-                }
-
-                if(action !== previous_action){
-
-                    LOG.log(status, type, request.url());
-                    LOG.info("State change from", previous_action, "to", action);
-
-                    eventEmitter.emit(action, request);
-                    previous_action = action;
-                }
+                eventEmitter.emit(action, request);
+                previous_action = action;
             }
         }
         catch (e) {
@@ -131,33 +104,34 @@ function attachPageEvents(page) {
 async function startBrowser() {
 
     let config = await Config.getCurrentConfig();
-    await Redis.set("browser_state", "active")
+    await Redis.set("browser:state", "active")
 
     try{
 
-        // Launch Puppeteer browser
-        LOG.info("Launching Puppeteer...", config.ig_username);
+        if(!browser){
+            // Launch Puppeteer browser
+            LOG.info("Launching Puppeteer...", config.ig_username);
 
-        let options = {
-            headless: isProduction, // set to true for production
-            args: ["--no-sandbox",
-                "--disable-setuid-sandbox",
-                `--proxy-server=http://${config.proxy_host}:${config.proxy_port}`,
-                "--disable-dev-shm-usage",
-                "--no-zygote",
-                "--single-process"
-            ],
-            defaultViewport: null,
-        };
+            let options = {
+                headless: isProduction, // set to true for production
+                args: ["--no-sandbox",
+                    "--disable-setuid-sandbox",
+                    `--proxy-server=http://${config.proxy_host}:${config.proxy_port}`,
+                    "--disable-dev-shm-usage",
+                    "--no-zygote",
+                    "--single-process"
+                ],
+                defaultViewport: null,
+            };
 
-        if(isProduction){
-            options.executablePath = '/usr/bin/google-chrome-stable';
-            options.userDataDir = path.join(homeDir, 'chrome-profile');
+            if(isProduction){
+                options.executablePath = '/usr/bin/google-chrome-stable';
+                options.userDataDir = path.join(homeDir, 'chrome-profile');
+            }
+
+            // Launch Puppeteer browser
+            browser = await puppeteer.launch(options);
         }
-
-        // Launch Puppeteer browser
-        browser = await puppeteer.launch(options);
-
 
         page = await browser.newPage();
     }
@@ -290,7 +264,7 @@ async function closeBrowser() {
     } catch (e) {
         LOG.warn("Error closing browser:", e.message);
     } finally {
-        await Redis.set("browser_state", "inactive")
+        await Redis.set("browser:state", "inactive")
     }
 
 }
@@ -383,7 +357,6 @@ eventEmitter.on("request_update", async (res) => {
             } catch (err) {
                 LOG.error('Response failed:', err.message);
             }
-
             break;
         default:
 
@@ -393,15 +366,40 @@ eventEmitter.on("request_update", async (res) => {
 
 
 
-eventEmitter.on("verify", async (code) => {
-    await Helper.takeScreenshot(page, "verify");
-    await page.type('text/Code', code, {delay: 50 + Math.random() * 100});
-    await page.click('text/Continue');
-}
-);
-eventEmitter.on("logged_in", async () =>{
+
+eventEmitter.on("logged_in", async (request) =>{
 
     try{
+
+        const postData = await request.fetchPostData();
+        const postDataObj = new URLSearchParams(postData);
+        const response = request.response();
+
+
+        const request_name = postDataObj.get("fb_api_req_friendly_name");
+
+        let obj = Object.fromEntries(postDataObj);
+
+        if(obj.variables)
+            obj.variables = JSON.parse(obj.variables);
+
+        let headers = request.headers()
+        headers = Helper.convertHeaders(headers);
+
+        if(request_name){
+
+            if(!queryStack.includes(request_name)){
+                queryStack.push(request_name);
+                eventEmitter.emit("request_update", {response, request_name})
+            }
+
+            graphqlData[request_name] = {
+                headers: headers,
+                postData: obj
+            };
+
+        }
+
         await Helper.saveCookies(page);
 
         await Helper.waitForTimeout();
@@ -427,7 +425,9 @@ eventEmitter.on("signup", signUp);
 
 eventEmitter.on('login', login);
 
-eventEmitter.on('refresh', refreshBrowser);
+eventEmitter.on('browser:refresh', async () => {
+    await refreshBrowser();
+});
 eventEmitter.on('reset', resetBrowser);
 
 eventEmitter.on('logout', async () => {
@@ -450,21 +450,29 @@ eventEmitter.on('save_info', async () => {
 eventEmitter.on('consent', async () => {
     LOG.debug("Sending email")
     //todo send email
-    await sendMail("Instagram API alert", "An instagram account has been inactive and requires consent in order to continue to serve")
+    //await sendMail("Instagram API alert", "An instagram account has been inactive and requires consent in order to continue to serve");
+
+    let config = await Config.setRandomAccount();
+    process.exit(0);
 
 });
 eventEmitter.on('challenge', async () => {
     //todo send email
-    await sendMail("Instagram API alert", "An instagram account has been inactive and requires to complete challenge in order to continue to serve")
+    //await sendMail("Instagram API alert", "An instagram account has been inactive and requires to complete challenge in order to continue to serve");
 
-});
-eventEmitter.on('verify_notify', async () => {
-    LOG.debug("Need verify code. check email and send code to /verify?code=xxx");
-    //todo send email
-    await sendMail("Instagram API alert", "An instagram account has been inactive and requires verification in order to continue to serve")
-
-
+    await Config.setRandomAccount();
+    process.exit(0);
 });
 
 
-module.exports = {graphqlData};
+eventEmitter.on("verify", async (code) => {
+    if(page && !page.isClosed()){
+        await Helper.takeScreenshot(page, "verify");
+        await page.type('text/Code', code, {delay: 50 + Math.random() * 100});
+        await page.click('text/Continue');
+    }
+
+});
+
+
+module.exports = {graphqlData, refreshBrowser};

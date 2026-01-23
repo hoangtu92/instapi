@@ -302,7 +302,7 @@ class Helper{
      * @returns {Promise<void>}
      */
     static async takeScreenshot (page, name){
-        if (!page.isClosed()) {
+        if (page && !page.isClosed()) {
             await page.screenshot({path: `screens/${name}.png`, fullPage: true});
         }
     }

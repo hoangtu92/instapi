@@ -4,6 +4,13 @@ const Redis = require('./redis');
 const LOG = require("./log");
 const Helper = require("./helpers");
 
+let httpsAgent
+
+(async () => {
+    httpsAgent = await Helper.getHttpAgent();
+})();
+
+
 
 const client = axios.create({
     timeout: 15000,
@@ -49,7 +56,6 @@ async function graphql(type, variables) {
     headers["cookie"] = cookie;
 
     postData.variables =  variables;
-    let httpsAgent = await Helper.getHttpAgent();
 
     const res = await client.post(
         "https://www.instagram.com/graphql/query",
@@ -60,7 +66,43 @@ async function graphql(type, variables) {
         }
     );
 
-    return res.data;
+    let result = res.data;
+    if(result.data){
+        switch(type){
+            case "PolarisSearchBoxRefetchableQuery":
+                result = result.data.xdt_api__v1__fbsearch__topsearch_connection.users;
+                break;
+            case "PolarisProfilePageContentQuery":
+                result = result.data.user;
+                break;
+            case "PolarisProfilePostsQuery":
+                result = result.data.xdt_api__v1__feed__user_timeline_graphql_connection;
+                break;
+            case "PolarisStoriesV3ReelPageStandaloneQuery":
+                result = result.data.xdt_api__v1__feed__reels_media.reels_media;
+                break;
+            case "PolarisProfileStoryHighlightsTrayContentQuery":
+                result = result.data.highlights;
+                break;
+            case "PolarisStoriesV3HighlightsPageQuery":
+                result = result.data.xdt_api__v1__feed__reels_media__connection.edges;
+                break;
+            case "PolarisProfileReelsTabContentQuery":
+                result = result.data.xdt_api__v1__clips__user__connection_v2;
+                break;
+
+            default:
+                result = result.data;
+                break;
+        }
+    }
+    else{
+        LOG.error(JSON.stringify(result.errors));
+        result = null;
+        throw Error("Please try again");
+    }
+
+    return result;
 }
 
 /**
@@ -70,7 +112,6 @@ async function graphql(type, variables) {
  */
 async function get_media_info(pk){
 
-    let httpsAgent = await Helper.getHttpAgent();
     const cookie = await Helper.getCookieHeader();
 
     let headers = {
@@ -123,7 +164,7 @@ async function request(type, variables, hour = 1){
             if(data){
                 // 3️⃣ store cache
                 await Redis.set(key, JSON.stringify(data), {
-                    EX: hour * 1000 * 60* 60
+                    EX: hour * 60 * 60
                 });
             }
         }

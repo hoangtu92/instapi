@@ -93,6 +93,7 @@ class Config {
     async setCurrentConfig(config) {
         this.saveJson(this.configsPath, config);
         await Redis.set("instapi_config", JSON.stringify(config));
+        LOG.log("Account changed to: ", config.ig_username);
         return config;
     }
 
@@ -100,20 +101,31 @@ class Config {
      *
      * @returns {Promise<boolean|*>}
      */
-    async setRandomAccount() {
+    async getRandomAccount() {
         const currentConfig = await this.getCurrentConfig();
-        const accounts = this.readJson(this.accountsPath);
 
-        if (!accounts || accounts.length === 0) return false;
+        try{
+            const accounts = this.readJson(this.accountsPath);
+            const candidates = accounts.filter(
+                acc => acc.ig_username !== currentConfig?.ig_username
+            );
+            const index = Math.floor(Math.random() * candidates.length);
 
-        const candidates = accounts.filter(
-            acc => acc.ig_username !== currentConfig?.ig_username
-        );
+            return candidates[index];
+        }
+        catch (e) {
+            return currentConfig;
+        }
 
-        if (candidates.length === 0) return false;
+    }
 
-        const index = Math.floor(Math.random() * candidates.length);
-        return this.setCurrentConfig(candidates[index]);
+    /**
+     *
+     * @returns {Promise<boolean|*>}
+     */
+    async setRandomAccount() {
+        const account = await this.getRandomAccount();
+        return this.setCurrentConfig(account);
     }
 
 }

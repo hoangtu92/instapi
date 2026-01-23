@@ -2,13 +2,18 @@ const {graphqlData} = require("./browser");
 const {request, get_media_info} = require("./igGraphql");
 const LOG = require("./log");
 const Config = require("./config");
-const eventEmitter = require("./eventEmitter");
+const Redis = require("./redis");
 
 const errorHandler = async (res, e) => {
     LOG.error(e.message);
-    let config = await Config.setRandomAccount();
-    eventEmitter.emit("browser:refresh", config);
-    res.status(500).json({error: "IG request failed: " + e.message});
+
+    let state = await Redis.get("browser:state");
+    if(state !=='active'){
+        await Config.setRandomAccount();
+        process.exit(0)
+    }
+
+    res.status(500).json({error: "Please try again"});
 }
 /**
  *
@@ -30,9 +35,9 @@ const searchProfile = async (req, res) => {
 
         const results = await request(type, variables, 720);
 
-        if (results.data)
+        if (results)
 
-            response = Object.values(results.data).pop().users.map(e => ({
+            response = results.map(e => ({
                 id: e.user.id,
                 is_verified: e.user.is_verified,
                 username: e.user.username,
@@ -65,10 +70,9 @@ const getProfile = async (req, res) => {
 
         let response;
 
-        const results = await request(type, variables, 720);
+        const user = await request(type, variables, 720);
 
-        if (results.data) {
-            let user = results.data.user;
+        if (user) {
 
             response = {
                 id: user.id,
@@ -82,6 +86,7 @@ const getProfile = async (req, res) => {
                 full_name: user.full_name,
                 hd_profile_pic_url_info: user.hd_profile_pic_url_info?.url,
                 is_business: user.is_business,
+                is_private: user.is_private,
                 is_professional_account: user.is_professional_account,
                 is_verified: user.is_verified,
                 latest_reel_media: user.latest_reel_media,
@@ -125,10 +130,10 @@ const getPosts = async (req, res) => {
         variables.last = req.query.last || null;
 
 
-        const results = await request(type, variables);
+        const results = await request(type, variables, 0.5);
 
-        if (results.data) {
-            response = results.data.xdt_api__v1__feed__user_timeline_graphql_connection.edges.map(e => ({
+        if (results.edges && results.edges.length) {
+            response = results.edges.map(e => ({
                 caption: e.node.caption?.text,
                 id: e.node.id,
                 code: e.node.code,
@@ -154,7 +159,7 @@ const getPosts = async (req, res) => {
 
             res.json({
                 results: response,
-                page_info: results.data.xdt_api__v1__feed__user_timeline_graphql_connection.page_info
+                page_info: results.page_info
             });
         } else res.json({results: [], page_info: null})
 
@@ -185,8 +190,8 @@ const getStories = async (req, res) => {
         variables.reel_ids_arr = [userId];
         const results = await request(type, variables);
 
-        if (results.data)
-            response = results.data.xdt_api__v1__feed__reels_media.reels_media.map(e => ({
+        if (results)
+            response = results.map(e => ({
                 type: "story",
                 title: e.title,
                 id: e.id,
@@ -224,10 +229,6 @@ const getHighLightsPreview = async (req, res) => {
     if (!userId) return res.status(400).json({error: "No user Id provided"});
 
     try {
-        let response = {
-            results: [],
-            page_info: null
-        };
 
         const type = "PolarisProfileStoryHighlightsTrayContentQuery";
         let variables = graphqlData[type].postData.variables
@@ -240,19 +241,25 @@ const getHighLightsPreview = async (req, res) => {
         // Adjust variable params according to api
         variables.user_id = userId;
         const results = await request(type, variables);
-        if (results.data)
-            response = results.data.highlights.edges.map(e => ({
-                type: "highlight",
-                title: e.node.title,
-                id: e.node.id,
-                user: e.node.user,
-                url: e.node.cover_media.cropped_image_version?.url
-            }));
+        if (results.edges && results.edges.length){
+            res.json({
+                results: results.edges.map(e => ({
+                    type: "highlight",
+                    title: e.node.title,
+                    id: e.node.id,
+                    user: e.node.user,
+                    url: e.node.cover_media.cropped_image_version?.url
+                })),
+                page_info: results.page_info
+            });
+        }
+        else{
+            res.json({
+                results: [],
+                page_info: null
+            });
+        }
 
-        res.json({
-            results: response,
-            page_info: results.data.highlights.page_info
-        });
 
     } catch (e) {
         await errorHandler(res, e)
@@ -283,8 +290,8 @@ const getHighLights = async (req, res) => {
         };
 
         const results = await request(type, variables);
-        if (results.data) {
-            response = results.data.xdt_api__v1__feed__reels_media__connection.edges.map(e => ({
+        if (results) {
+            response = results.map(e => ({
                 type: "highlight",
                 id: e.node.id,
                 title: e.node.title,
@@ -334,23 +341,29 @@ const getReels = async (req, res) => {
         // Adjust variable params according to api
         variables.data.target_user_id = userId;
         const results = await request(type, variables, 5);
-        if (results.data)
-            edges = results.data.xdt_api__v1__clips__user__connection_v2.edges.map(e => ({
-                type: "reel",
-                id: e.node.media.id,
-                pk: e.node.media.pk,
-                like_count: e.node.media.like_count,
-                product_type: e.node.media.product_type,
-                comment_count: e.node.media.comment_count,
-                view_count: e.node.media.view_count,
-                image_versions2: e.node.media.image_versions2.candidates
-            }));
+        if (results.edges && results.edges.length){
+            res.json({
+                results: results.edges.map(e => ({
+                    type: "reel",
+                    id: e.node.media.id,
+                    pk: e.node.media.pk,
+                    like_count: e.node.media.like_count,
+                    product_type: e.node.media.product_type,
+                    comment_count: e.node.media.comment_count,
+                    view_count: e.node.media.view_count,
+                    image_versions2: e.node.media.image_versions2.candidates
+                })),
+                page_info: results.page_info
+            })
+        }
+        else{
+            res.json({
+                results: [],
+                page_info: null
+            });
+        }
 
 
-        res.json({
-            results: edges,
-            page_info: results.data.xdt_api__v1__clips__user__connection_v2.page_info
-        });
 
     } catch (e) {
         await errorHandler(res, e)
