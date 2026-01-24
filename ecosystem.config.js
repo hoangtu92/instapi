@@ -1,7 +1,7 @@
 module.exports = {
     apps: [
         {
-            name: "api_server",
+            name: "instapi_server",
             script: "server.js",
             max_memory_restart: '1500M',
             watch: true,       // change to true if you want auto-reload on file changes
