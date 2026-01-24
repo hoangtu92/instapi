@@ -36,17 +36,21 @@ instance.interceptors.request.use(
 
         // Params → headers
         const paramHeaders =  {
-            "x-csrftoken": params["x-csrftoken"],
-            'x-ig-app-id': params["x-ig-app-id"],
             "Content-Type": "application/x-www-form-urlencoded",
             "referer": "https://www.instagram.com/",
             "origin": "https://www.instagram.com/",
         };
 
+        const tokenHeaders = {
+            "x-csrftoken": params["x-csrftoken"],
+            'x-ig-app-id': params["x-ig-app-id"]
+        }
+
         /* ---- Inject headers ---- */
         config.headers = {
             ...paramHeaders,
             ...config.headers,
+            ...tokenHeaders,
             cookie,
         };
 
