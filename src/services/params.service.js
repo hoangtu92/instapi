@@ -2,7 +2,17 @@ const fs = require("fs");
 const LOG = require("../helpers/log");
 const path = require("path");
 const crypto = require("crypto");
+
+const PARAMS_DIR = path.resolve(process.cwd(), 'storage/params');
+
 class ParamsService {
+
+    /**
+     * Ensure params directory exists
+     */
+    ensureDir() {
+        fs.mkdir(PARAMS_DIR, { recursive: true }, null);
+    }
     /**
      *
      * @returns {null|*}
@@ -24,6 +34,8 @@ class ParamsService {
      * @param params
      */
     save (ig_username, params) {
+
+        this.ensureDir();
         LOG.info("Save Param", ig_username)
         const paramsPath = this.getPath(ig_username);
         fs.writeFileSync(paramsPath, JSON.stringify(params, null, 2));

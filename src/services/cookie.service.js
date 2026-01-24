@@ -4,9 +4,17 @@ const Config = require("./config.service");
 const path = require("path");
 const crypto = require("crypto");
 
+const COOKIE_DIR = path.resolve(process.cwd(), "storages/cookies/");
+
 class CookieService {
 
 
+    /**
+     * Ensure params directory exists
+     */
+    ensureDir() {
+        fs.mkdir(COOKIE_DIR, { recursive: true }, null);
+    }
     /**
      *
      * @returns {string}
@@ -46,6 +54,7 @@ class CookieService {
      * @param cookies
      */
     save (ig_username, cookies) {
+        this.ensureDir();
         LOG.info("Save Cookie", ig_username)
         const cookiesPath = this.getPath(ig_username);
         fs.writeFileSync(cookiesPath, JSON.stringify(cookies, null, 2));
