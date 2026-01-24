@@ -1,5 +1,4 @@
 const express = require("express");
-const cors = require("cors");
 const app = express();
 const LOG = require("./src/helpers/log");
 const Config = require("./src/services/config.service");
@@ -13,7 +12,7 @@ const {google} = require("googleapis");
 
 
 
-app.use(cors({origin: "*"}));
+//app.use(cors({origin: "*"}));
 app.use(express.json());
 
 app.get("/", async (req, res) => {
