@@ -90,6 +90,12 @@ class Browser {
      * Gracefully close browser
      */
     async closeBrowser() {
+
+        if(!this.headless){
+            await this.page.evaluate(() => {
+                alert("Session saved. Click Ok to close the browser")
+            })
+        }
         if (!this.browserInstance) return;
 
         try {

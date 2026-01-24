@@ -18,6 +18,6 @@ if(!params.username){
 
 (async ()=>{
     const account = Config.getConfig(params.username);
-    await browserService.login({config: account, headless: false})
+    await browserService.login({config: account, headless: !params.show})
 
 })();
