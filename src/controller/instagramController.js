@@ -302,7 +302,7 @@ const getReels = async (req, res) => {
                     view_count: e.node.media.view_count,
                     image_versions2: e.node.media.image_versions2.candidates
                 })) || [],
-                page_info: results.page_info
+                page_info: data.page_info
             }
         });
 
