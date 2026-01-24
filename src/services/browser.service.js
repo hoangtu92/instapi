@@ -41,7 +41,9 @@ class BrowserService {
         } finally {
             if(browser){
                 await browser.closeBrowser();
-                process.exit(0);
+                if(browser.headless){
+                    process.exit(0);
+                }
             }
         }
     }
