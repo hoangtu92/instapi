@@ -3,6 +3,7 @@ const LOG = require("../helpers/log");
 const Redis = require("../infra/redis");
 const eventEmitter = require("../events/eventEmitter");
 const Config = require("../services/config.service");
+const sessionService = require("../services/session.service");
 const sendMail = require("../services/email.service");
 
 const websocket =  () => {
@@ -72,7 +73,7 @@ const websocket =  () => {
                     break;
                 case "random_account":
                     if (state !== "active") {
-                        let config = await Config.setRandomAccount();
+                        let config = await sessionService.setRandomAccount();
                         eventEmitter.emit("browser:refresh", config);
                     }
                     break;

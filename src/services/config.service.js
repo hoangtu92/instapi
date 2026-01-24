@@ -90,38 +90,6 @@ class ConfigService {
         return config;
     }
 
-    /**
-     *
-     * @returns {Promise<boolean|*>}
-     */
-    async getRandomAccount() {
-        const currentConfig = await this.getCurrentConfig();
-
-        try{
-            const accounts = this.readJson(this.accountsPath);
-            const candidates = accounts.filter(
-                acc => acc.ig_username !== currentConfig?.ig_username
-            );
-            const index = Math.floor(Math.random() * candidates.length);
-
-            return candidates[index];
-        }
-        catch (e) {
-            return currentConfig;
-        }
-
-    }
-
-    /**
-     *
-     * @returns {Promise<boolean|*>}
-     */
-    async setRandomAccount() {
-        const account = await this.getRandomAccount();
-        if(account)
-            return this.setCurrentConfig(account);
-    }
-
 }
 
 module.exports = new ConfigService();

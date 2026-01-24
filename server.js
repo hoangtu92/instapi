@@ -81,7 +81,7 @@ app.get("/gmail_postback", async (req, res) => {
 
 
 // 🖥 Start server
-const PORT = 3001;
+const PORT = process.env.SERVER_PORT || 3000;
 app.listen(PORT, async () => {
     LOG.log(`API server running on port ${PORT}`);
 

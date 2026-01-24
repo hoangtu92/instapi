@@ -5,4 +5,5 @@ instaproxy
 package-lock.json
 .idea
 Instapi.iml
-storages/*
+storages/cookies/*
+storages/params/*

@@ -57,7 +57,7 @@ class SessionService {
         // Delete current session.
         await Redis.del(CURRENT_SESSION_KEY);
 
-        let config = await ConfigService.getRandomAccount();
+        let config = await this.getRandomAccount();
 
         if(config && config.ig_username !== ig_username){
 
@@ -89,6 +89,7 @@ class SessionService {
         let cookies = CookieService.get(config.ig_username);
 
         if (!cookies) {
+            // No cookies
             throw new Error("No active cookie available");
         }
 
@@ -100,7 +101,13 @@ class SessionService {
                 acc: config,
             }).then(res => res.data);
 
-            const csrftoken = html.match(/"csrf_token"\s*:\s*"([^"]+)"/)[1];
+            const m = html.match(/"csrf_token"\s*:\s*"([^"]+)"/);
+
+            if(!m[1]){
+                // IG Session expired, need full login process.
+            }
+
+            const csrftoken = m[1];
 
             const params =  {
                 "x-csrftoken": csrftoken
@@ -117,6 +124,45 @@ class SessionService {
             LOG.warn("Light rebuild failed:", e.message);
             return null;
         }
+    }
+
+
+    /**
+     *
+     * @returns {Promise<boolean|*>}
+     */
+    async getRandomAccount() {
+        const currentConfig = await ConfigService.getCurrentConfig();
+
+        try{
+            const accounts = ConfigService.readJson(ConfigService.accountsPath);
+            const candidates = accounts.filter(
+                acc => acc.ig_username !== currentConfig?.ig_username
+                    && ParamsService.available(acc.ig_username)
+                    && CookieService.available(acc.ig_username)
+
+            );
+            if(candidates.length){
+                const index = Math.floor(Math.random() * candidates.length);
+
+                return candidates[index];
+            }
+
+        }
+        catch (e) {
+            return currentConfig;
+        }
+
+    }
+
+    /**
+     *
+     * @returns {Promise<boolean|*>}
+     */
+    async setRandomAccount() {
+        const account = await this.getRandomAccount();
+        if(account)
+            return ConfigService.setCurrentConfig(account);
     }
 }
 

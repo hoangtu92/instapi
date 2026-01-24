@@ -1,5 +1,5 @@
 const {request, get_media_info} = require("../services/instagram.service");
-const Config = require("../services/config.service");
+const sessionService = require("../services/session.service");
 const {searchQuery} = require("../services/queries/search.query");
 const {response} = require("express");
 const {profileQuery} = require("../services/queries/profile.query");
@@ -12,7 +12,7 @@ const LOG = require("../helpers/log");
 
 const errorHandler = async (res, e) => {
     LOG.error("Error: ", e.message);
-    await Config.setRandomAccount();
+    await sessionService.setRandomAccount();
     process.exit(0);
     res.status(500).json({error: "Please try again"});
 }
