@@ -122,7 +122,7 @@ const getPosts = async (req, res) => {
 
         res.json({
             results: results,
-            page_info: results.page_info
+            page_info: data.page_info
         });
 
 
