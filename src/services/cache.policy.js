@@ -21,7 +21,7 @@ module.exports = {
                 ?.user ?? null,
     },
 
-    getInstagramPosts: {
+    PolarisProfilePostsQuery: {
         ttl: 300,
         pick: res =>
             res?.data
