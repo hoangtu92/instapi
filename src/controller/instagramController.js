@@ -95,9 +95,9 @@ const getPosts = async (req, res) => {
         const postData = postsQuery(username, {before, after, first, last});
 
 
-        const res = await request(type, postData, 0.5);
+        const data = await request(type, postData, 0.5);
 
-        const results = res.edges?.map(e => ({
+        const results = data.edges?.map(e => ({
             caption: e.node.caption?.text,
             id: e.node.id,
             code: e.node.code,
@@ -149,9 +149,9 @@ const getStories = async (req, res) => {
 
 
         // Adjust variable params according to api
-        const res = await request(type, postData);
+        const data = await request(type, postData);
 
-        const results = res.map(e => ({
+        const results = data.map(e => ({
             type: "story",
             title: e.title,
             id: e.id,
