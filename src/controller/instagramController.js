@@ -1,7 +1,6 @@
 const {request, get_media_info} = require("../services/instagram.service");
 const sessionService = require("../services/session.service");
 const {searchQuery} = require("../services/queries/search.query");
-const {response} = require("express");
 const {profileQuery} = require("../services/queries/profile.query");
 const {postsQuery} = require("../services/queries/posts.query");
 const {storiesQuery} = require("../services/queries/stories.query");
@@ -34,7 +33,7 @@ const searchProfile = async (req, res) => {
 
         const results = await request(type, postData, 720);
 
-        const response = results.map(e => ({
+        const data = results.map(e => ({
             id: e.user.id,
             is_verified: e.user.is_verified,
             username: e.user.username,
@@ -42,7 +41,7 @@ const searchProfile = async (req, res) => {
             profile_pic_url: e.user.profile_pic_url
         }));
 
-        res.json(response);
+        res.json(data);
 
     } catch (e) {
         await errorHandler(res, e)
@@ -122,7 +121,7 @@ const getPosts = async (req, res) => {
         })) || [];
 
         res.json({
-            results: response,
+            results: results,
             page_info: results.page_info
         });
 
@@ -235,8 +234,6 @@ const getHighLights = async (req, res) => {
     if (!initial_reel_id) return res.status(400).json({error: "No highlight Id provided"});
 
     try {
-
-        let response = [];
 
         const type = "PolarisStoriesV3HighlightsPageQuery";
 
