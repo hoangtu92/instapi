@@ -1,20 +1,19 @@
 const fs = require("fs");
 const path = require("path");
-const LOG = require("./log");
-const Redis = require("./redis");
+const LOG = require("../helpers/log");
+const Redis = require("../infra/redis");
 
-class Config {
+class ConfigService {
 
     constructor() {
-        this.accountsPath = path.resolve(process.cwd(), "accounts.json");
-        this.configsPath  = path.resolve(process.cwd(), "config.json");
-        this.paramsPath   = path.resolve(process.cwd(), "params.json");
+        this.accountsPath = path.resolve(process.cwd(), "storages/accounts.json");
+        this.configsPath  = path.resolve(process.cwd(), "storages/config.json");
     }
 
     /**
      *
      * @param filename
-     * @returns {Promise<null|any>}
+     * @returns {null|any}
      */
     readJson(filename) {
         try {
@@ -46,22 +45,6 @@ class Config {
         }
     }
 
-    /**
-     *
-     * @returns {Promise<*|null>}
-     */
-    getGraphqlData() {
-        return this.readJson(this.paramsPath);
-    }
-
-    /**
-     *
-     * @param graphqlData
-     * @returns {boolean}
-     */
-    saveGraphqlData(graphqlData) {
-        return this.saveJson(this.paramsPath, graphqlData);
-    }
 
     /**
      *
@@ -76,13 +59,23 @@ class Config {
         catch (e) {
             LOG.error("Invalid config in Redis, reloading from file");
         }
-
-
         const fileConfig = this.readJson(this.configsPath);
         if (fileConfig) {
             await Redis.set("instapi_config", JSON.stringify(fileConfig));
             return fileConfig;
         }
+        return null
+    }
+
+
+
+    getConfig(ig_username){
+        const accounts = this.readJson(this.accountsPath);
+
+        if(accounts){
+            return accounts.find(e => e.ig_username === ig_username);
+        }
+        return null;
     }
 
     /**
@@ -125,9 +118,10 @@ class Config {
      */
     async setRandomAccount() {
         const account = await this.getRandomAccount();
-        return this.setCurrentConfig(account);
+        if(account)
+            return this.setCurrentConfig(account);
     }
 
 }
 
-module.exports = new Config();
+module.exports = new ConfigService();

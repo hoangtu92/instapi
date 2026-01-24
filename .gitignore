@@ -1,13 +1,8 @@
 node_modules
 screens
 instaproxy
-instagram-cookies.json
 .env
 package-lock.json
 .idea
 Instapi.iml
-cookies/*
-accounts.json
-credentials.json
-params.json
-token.json
+storages/*

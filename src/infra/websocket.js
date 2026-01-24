@@ -1,9 +1,9 @@
 const WebSocket = require("ws");
-const LOG = require("./log");
-const Redis = require("./redis");
-const eventEmitter = require("./eventEmitter");
-const Config = require("./config");
-const sendMail = require("./alertSystem");
+const LOG = require("../helpers/log");
+const Redis = require("../infra/redis");
+const eventEmitter = require("../events/eventEmitter");
+const Config = require("../services/config.service");
+const sendMail = require("../services/email.service");
 
 const websocket =  () => {
 

@@ -1,14 +1,14 @@
 const express = require("express");
 const cors = require("cors");
 const app = express();
-const LOG = require("./src/log");
-const Config = require("./src/config");
+const LOG = require("./src/helpers/log");
+const Config = require("./src/services/config.service");
 const fs = require("fs");
 
 require('dotenv').config();
 
 const {getProfile, searchProfile, getPosts, getStories, getHighLightsPreview, getHighLights, getMediaInfo, getReels
-} = require("./src/instagramController");
+} = require("./src/controller/instagramController");
 const {google} = require("googleapis");
 
 
@@ -65,7 +65,7 @@ app.get("/gmail_postback", async (req, res) => {
 
     if(!req.query.code) return res.status(403);
 
-    const creds = JSON.parse(fs.readFileSync('credentials.json'));
+    const creds = JSON.parse(fs.readFileSync('credentials.json', 'utf-8'));
     const auth = new google.auth.OAuth2(
         creds.web.client_id,
         creds.web.client_secret,
