@@ -36,7 +36,8 @@ instance.interceptors.request.use(
 
         // Params → headers
         const paramHeaders =  {
-            "x-csrftoken": params["x-csrftoken"], // Use header from puppeteer first, fallback to axios bootstrap value
+            "x-csrftoken": params["x-csrftoken"],
+            'x-ig-app-id': params["x-ig-app-id"],
             "Content-Type": "application/x-www-form-urlencoded",
             "referer": "https://www.instagram.com/",
             "origin": "https://www.instagram.com/",

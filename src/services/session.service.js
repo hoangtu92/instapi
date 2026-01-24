@@ -106,12 +106,17 @@ class SessionService {
             if(!m[1]){
                 // IG Session expired, need full login process.
             }
-
             const csrftoken = m[1];
 
-            const params =  {
+            let params =  {
                 "x-csrftoken": csrftoken
             };
+
+            const m1 = html.match(/"app_id"\s*:\s*"([^"]+)"/);
+            if(m1[1]){
+                params["x-ig-app-id"] = m1[1];
+            }
+
             ParamsService.save(config.ig_username, params);
 
             cookies.find(e => e.name === "csrftoken" ).value = csrftoken;
