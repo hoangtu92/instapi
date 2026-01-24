@@ -97,6 +97,7 @@ instance.interceptors.response.use(
 
                         delete config.headers.cookie;
                         delete config.headers["x-csrftoken"];
+                        delete config.headers["x-ig-app-id"];
 
                         return instance(config);
 
