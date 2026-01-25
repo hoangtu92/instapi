@@ -161,7 +161,7 @@ const getSimplePosts = async (req, res) => {
             comment_count: e.comment_count,
             like_count: e.like_count,
             image_versions2: e.image_versions2.candidates.filter(e => e.width <= 250),
-            taken_at: e.node.taken_at,
+            taken_at: e.taken_at,
         })) || [];
 
         res.json({
