@@ -7,7 +7,8 @@ const fs = require("fs");
 
 require('dotenv').config();
 
-const {getProfile, searchProfile, getPosts, getStories, getHighLightsPreview, getHighLights, getMediaInfo, getReels
+const {getProfile, searchProfile, getPosts, getStories, getHighLightsPreview, getHighLights, getMediaInfo, getReels,
+    getSimplePosts
 } = require("./src/controller/instagramController");
 const {google} = require("googleapis");
 
@@ -34,6 +35,8 @@ app.get("/profile", getProfile);
  * Get latest posts
  */
 app.get("/posts", getPosts);
+
+app.get("/simple-posts", getSimplePosts);
 
 
 /**

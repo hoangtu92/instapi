@@ -130,6 +130,50 @@ const getPosts = async (req, res) => {
         await errorHandler(res, e)
     }
 }
+/**
+ *
+ * @param req
+ * @param res
+ * @returns {Promise<*>}
+ */
+const getSimplePosts = async (req, res) => {
+    const username = req.query.u;
+    if (!username) return res.status(400).json({error: "No username provided"})
+
+    try {
+
+        const type = "PolarisProfilePostsQuery";
+
+        const after = req.query.after || null;
+        const before = req.query.before || null;
+        const first = req.query.first || null;
+        const last = req.query.last || null;
+
+        const postData = postsQuery(username, {before, after, first, last});
+
+
+        const data = await request(type, postData, 0.5);
+
+        const results = data.edges?.map(e => e.node).map(e => ({
+            caption: e.caption?.text,
+            id: e.id,
+            code: e.code,
+            comment_count: e.comment_count,
+            like_count: e.like_count,
+            image_versions2: e.image_versions2.candidates.filter(e => e.width <= 250),
+            taken_at: e.node.taken_at,
+        })) || [];
+
+        res.json({
+            results: results,
+            page_info: data.page_info
+        });
+
+
+    } catch (e) {
+        await errorHandler(res, e)
+    }
+}
 
 /**
  *
@@ -352,6 +396,7 @@ module.exports = {
     searchProfile,
     getProfile,
     getPosts,
+    getSimplePosts,
     getStories,
     getHighLightsPreview,
     getHighLights,

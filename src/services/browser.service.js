@@ -3,7 +3,6 @@ const StealthPlugin = require('puppeteer-extra-plugin-stealth');
 const Browser = require("../browser/index");
 const {loginAction} = require("../browser/actions/login.action");
 const LOG = require("../helpers/log");
-const Helper = require("../helpers/helpers");
 const CookieService = require("../services/cookie.service");
 const ParamsService = require("../services/params.service");
 
