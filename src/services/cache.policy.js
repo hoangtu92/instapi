@@ -27,6 +27,12 @@ module.exports = {
             res?.data
                 ?.xdt_api__v1__feed__user_timeline_graphql_connection ?? null,
     },
+    PolarisProfileSimplePostsQuery: {
+        ttl: 300,
+        pick: res =>
+            res?.data
+                ?.xdt_api__v1__feed__user_timeline_graphql_connection ?? null,
+    },
 
     PolarisStoriesV3ReelPageStandaloneQuery: {
         ttl: 300, // stories are very volatile

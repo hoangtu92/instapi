@@ -142,7 +142,7 @@ const getSimplePosts = async (req, res) => {
 
     try {
 
-        const type = "PolarisProfilePostsQuery";
+        const type = "PolarisProfileSimplePostsQuery";
 
         const after = req.query.after || null;
         const before = req.query.before || null;
