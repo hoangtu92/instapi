@@ -7,7 +7,7 @@ module.exports = {
             watch: true,       // change to true if you want auto-reload on file changes
             autorestart: true,  // restart on crash
             restart_delay: 5000,
-            max_restarts: 10,
+            instances: "max",
             env: {
                 NODE_ENV: "production"
             }
