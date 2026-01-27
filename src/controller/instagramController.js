@@ -63,7 +63,7 @@ const getProfile = async (req, res) => {
 
         const postData = profileQuery(id);
 
-        const user = await request(type, postData, 720);
+        const user = await request(type, postData, 1);
 
         res.json(user);
 
