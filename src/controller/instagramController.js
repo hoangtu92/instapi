@@ -336,15 +336,17 @@ const getReels = async (req, res) => {
 
         const results = await request(type, postData).then(data => {
             return {
-                results: data.edges?.map(e => ({
+                results: data.edges?.map(e => e.node.media).map(e => ({
                     type: "reel",
-                    id: e.node.media.id,
-                    pk: e.node.media.pk,
-                    like_count: e.node.media.like_count,
-                    product_type: e.node.media.product_type,
-                    comment_count: e.node.media.comment_count,
-                    view_count: e.node.media.view_count,
-                    image_versions2: e.node.media.image_versions2.candidates
+                    code: e.code,
+                    id: e.id,
+                    pk: e.pk,
+                    like_count: e.like_count,
+                    product_type: e.product_type,
+                    comment_count: e.comment_count,
+                    view_count: e.view_count,
+                    play_count: e.play_count,
+                    image_versions2: e.image_versions2.candidates
                 })) || [],
                 page_info: data.page_info
             }
