@@ -57,6 +57,7 @@ class SessionService {
         // Delete current session.
         await Redis.del(CURRENT_SESSION_KEY);
 
+
         let config = await this.getRandomAccount();
 
         if(config && config.ig_username !== ig_username){
@@ -89,7 +90,7 @@ class SessionService {
         let cookies = CookieService.get(config.ig_username);
 
         if (!cookies) {
-            // No cookies
+            // No cookies, alert admin
             throw new Error("No active cookie available");
         }
 
@@ -165,6 +166,7 @@ class SessionService {
      * @returns {Promise<boolean|*>}
      */
     async setRandomAccount() {
+        await Redis.del(CURRENT_SESSION_KEY);
         const account = await this.getRandomAccount();
         if(account)
             return ConfigService.setCurrentConfig(account);
