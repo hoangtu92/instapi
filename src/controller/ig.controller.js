@@ -260,7 +260,7 @@ const getHighLights = async (req, res) => {
 
 
     const results = await request(type, postData).then(data => {
-        return data.map(e => ({
+        return data ? data.map(e => ({
             type: "highlight",
             id: e.node.id,
             title: e.node.title,
@@ -275,7 +275,7 @@ const getHighLights = async (req, res) => {
             })),
             user: e.node.user,
             url: e.node.cover_media.cropped_image_version?.url
-        }))
+        })) : null
     });
 
 
@@ -303,7 +303,7 @@ const getReels = async (req, res) => {
     const postData = reelsQuery(userId, {before, after, first, last})
 
     const results = await request(type, postData).then(data => {
-        return {
+        return data ? {
             results: data.edges?.map(e => e.node.media).map(e => ({
                 type: "reel",
                 code: e.code,
@@ -317,7 +317,7 @@ const getReels = async (req, res) => {
                 image_versions2: e.image_versions2.candidates
             })) || [],
             page_info: data.page_info
-        }
+        } : null
     });
 
     res.json(results);
