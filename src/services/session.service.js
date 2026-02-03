@@ -11,33 +11,23 @@ class SessionService {
     async ensureValidSession (){
 
 
-        const config = await this.getRandomAccount();
+        const session = await this.getRandomSession();
+
+        LOG.debug("Session: ", session.config.ig_username)
 
 
-        if(!config){
+        if(!session){
             throw new Error("No config available");
         }
 
-        const ig_username = config.ig_username;
 
-        const params = ParamsService.get(ig_username);
-        const cookies = CookieService.get(ig_username);
-
-        if(!params){
+        if(!session.params){
             throw new Error("No params available");
         }
 
-        if(!cookies){
+        if(!session.cookie){
             throw new Error("No cookie available");
         }
-
-        const session = {
-            params,
-            cookie: CookieService.serialize(cookies),
-            config
-        }
-
-        await Redis.set(CURRENT_SESSION_KEY, JSON.stringify(session));
 
         return session;
 
@@ -116,8 +106,7 @@ class SessionService {
         try{
             const accounts = await ConfigService.getConfigs();
             const candidates = accounts.filter(
-                acc => acc.active
-                    && ParamsService.available(acc.ig_username)
+                acc => ParamsService.available(acc.ig_username)
                     && CookieService.available(acc.ig_username)
 
             );
@@ -150,7 +139,7 @@ class SessionService {
      *
      * @returns {Promise<boolean|*>}
      */
-    async getRandomAccount(ig_username = null) {
+    async getRandomSession(ig_username = null) {
 
         let sessions = await this.getSessions();
 
@@ -165,6 +154,11 @@ class SessionService {
         return null;
     }
 
+    /**
+     *
+     * @param err
+     * @returns {Promise<void>}
+     */
     async errorHandler (err) {
         LOG.error("Error: ", err.message);
         await Redis.del(CURRENT_SESSION_KEY);

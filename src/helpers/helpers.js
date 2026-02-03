@@ -35,7 +35,7 @@ class Helper{
      *
      * @returns {HttpsProxyAgent<string>}
      */
-    static async getHttpAgent (config) {
+    static getHttpAgent (config) {
         let proxy_str = `http://${config.proxy_username}:${config.proxy_pass}@${config.proxy_host}:${config.proxy_port}`;
         return new HttpsProxyAgent(proxy_str);
     }
