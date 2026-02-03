@@ -267,7 +267,7 @@ const getHighLights = async (req, res) => {
             items: e.node.items.map(f => ({
                 id: f.id,
                 pk: f.pk,
-                image_versions2: f.image_versions2.candidates,
+                image_versions2: f.image_versions2.candidates?.filter(e => e.width >= 500),
                 video_versions: f.video_versions,
                 video_duration: f.video_duration,
                 taken_at: f.taken_at,
