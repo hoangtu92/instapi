@@ -21,21 +21,17 @@ const searchProfile = async (req, res) => {
     const postData = searchQuery(username);
 
 
-    const results = await request(type, postData, 720);
-
-    if(results){
-        const data = results.map(e => ({
+    const results = await request(type, postData, 24).then(data => {
+        return data ? data.map(e => ({
             id: e.user.id,
             is_verified: e.user.is_verified,
             username: e.user.username,
             full_name: e.user.full_name,
             profile_pic_url: e.user.profile_pic_url
-        }));
+        })) : null
+    });
 
-        res.json(data);
-    }
-    else
-    res.json([]);
+    res.json(results);
 }
 /**
  *
@@ -53,9 +49,9 @@ const getProfile = async (req, res) => {
     const postData = profileQuery(id);
 
     const user = await request(type, postData, 1);
-    if(user) res.json(user);
 
-    else res.json({})
+    res.json(user);
+
 
 }
 
@@ -79,42 +75,39 @@ const getPosts = async (req, res) => {
     const postData = postsQuery(username, {before, after, first, last});
 
 
-    const data = await request(type, postData, 0.5);
-
-    if(data && data.edges){
-        const results = data.edges.map(e => ({
-            caption: e.node.caption?.text,
-            id: e.node.id,
-            code: e.node.code,
-            comment_count: e.node.comment_count,
-            like_count: e.node.like_count,
-            carousel_media: e.node.carousel_media ? e.node.carousel_media.map(carousel => {
-                return {
-                    image_versions2: carousel.image_versions2.candidates,
-                    video_versions: carousel.video_versions
+    const results = await request(type, postData, 0.5).then(data => {
+        return data && data.edges ? {
+            results: data.edges.map(e => ({
+                caption: e.node.caption?.text,
+                id: e.node.id,
+                code: e.node.code,
+                comment_count: e.node.comment_count,
+                like_count: e.node.like_count,
+                carousel_media: e.node.carousel_media ? e.node.carousel_media.map(carousel => {
+                    return {
+                        image_versions2: carousel.image_versions2.candidates,
+                        video_versions: carousel.video_versions
+                    }
+                }) : null,
+                image_versions2: e.node.image_versions2.candidates,
+                video_dash_manifest: e.node.video_dash_manifest,
+                video_versions: e.node.video_versions,
+                taken_at: e.node.taken_at,
+                user: {
+                    username: e.node.user.username,
+                    full_name: e.node.user.full_name,
+                    id: e.node.user.id,
+                    profile_pic_url: e.node.user.profile_pic_url
                 }
-            }) : null,
-            image_versions2: e.node.image_versions2.candidates,
-            video_dash_manifest: e.node.video_dash_manifest,
-            video_versions: e.node.video_versions,
-            taken_at: e.node.taken_at,
-            user: {
-                username: e.node.user.username,
-                full_name: e.node.user.full_name,
-                id: e.node.user.id,
-                profile_pic_url: e.node.user.profile_pic_url
-            }
-        })) || [];
-
-        res.json({
-            results: results,
+            })),
             page_info: data.page_info
-        });
-    }
-    else res.json({
-        results: [],
-        page_info: null
+        } : {
+            results: [],
+            page_info: null
+        }
     })
+
+    res.json(results)
 }
 /**
  *
@@ -136,28 +129,25 @@ const getSimplePosts = async (req, res) => {
     const postData = postsQuery(username, {before, after, first, last});
 
 
-    const data = await request(type, postData, 0.5);
-
-    if(data && data.edges){
-        const results = data.edges.map(e => e.node).map(e => ({
-            caption: e.caption?.text,
-            id: e.id,
-            code: e.code,
-            comment_count: e.comment_count,
-            like_count: e.like_count,
-            image_versions2: e.image_versions2.candidates.filter(e => e.width <= 250),
-            taken_at: e.taken_at,
-        })) || [];
-
-        res.json({
-            results: results,
+    const results = await request(type, postData, 0.5).then(data => {
+        return data && data.edges ? {
+            results: data.edges.map(e => e.node).map(e => ({
+                caption: e.caption?.text,
+                id: e.id,
+                code: e.code,
+                comment_count: e.comment_count,
+                like_count: e.like_count,
+                image_versions2: e.image_versions2.candidates.filter(e => e.width <= 250),
+                taken_at: e.taken_at,
+            })),
             page_info: data.page_info
-        });
-    }
-    else res.json({
-        results: [],
-        page_info: null
-    })
+        } : {
+            results: [],
+            page_info: null
+        }
+    });
+
+    res.json(results);
 }
 
 /**
@@ -176,10 +166,8 @@ const getStories = async (req, res) => {
 
 
     // Adjust variable params according to api
-    const data = await request(type, postData);
-
-    if(data){
-        const results = data.map(e => ({
+    const results = await request(type, postData).then(data => {
+        return data ? data.map(e => ({
             type: "story",
             title: e.title,
             id: e.id,
@@ -198,12 +186,10 @@ const getStories = async (req, res) => {
                 })
                 return t;
             }, [])
-        }));
+        })) : [];
+    });
 
-        res.json(results);
-    }
-
-    else res.json([]);
+    res.json(results);
 }
 /**
  *
@@ -237,7 +223,7 @@ const getHighLightsPreview = async (req, res) => {
                 url: e.node.cover_media.cropped_image_version?.url
             })) || [],
             page_info: data.page_info
-        } : null
+        } : []
     });
 
     res.json(results);
@@ -275,7 +261,7 @@ const getHighLights = async (req, res) => {
             })),
             user: e.node.user,
             url: e.node.cover_media.cropped_image_version?.url
-        })) : null
+        })) : []
     });
 
 
@@ -317,7 +303,7 @@ const getReels = async (req, res) => {
                 image_versions2: e.image_versions2.candidates
             })) || [],
             page_info: data.page_info
-        } : null
+        } : []
     });
 
     res.json(results);
