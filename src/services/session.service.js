@@ -37,8 +37,6 @@ class SessionService {
             config
         }
 
-
-
         await Redis.set(CURRENT_SESSION_KEY, JSON.stringify(session));
 
         return session;
@@ -165,6 +163,13 @@ class SessionService {
         }
 
         return null;
+    }
+
+    async errorHandler (err) {
+        LOG.error("Error: ", err.message);
+        await Redis.del(CURRENT_SESSION_KEY);
+
+        process.exit(0);
     }
 }
 

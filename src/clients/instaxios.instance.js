@@ -88,20 +88,21 @@ instance.interceptors.response.use(
             const meta = config?.meta || {};
 
             const status = response.status;
+
             /**
              * 🚫 COOKIE FAILURE → NO RETRY
              */
-            if([401, 403, 407].includes(status)){
+            if (meta.retryCount === 0 && [401, 403, 407].includes(status)) {
+                meta.retryCount++;
 
-                if (config.meta.retryCount === 0) {
-                    config.meta.retryCount++;
+                delete config.headers.cookie;
+                delete config.headers["x-csrftoken"];
+                delete config.headers["x-ig-app-id"];
 
-                    delete config.headers.cookie;
-                    delete config.headers["x-csrftoken"];
-                    delete config.headers["x-ig-app-id"];
-
-                    return instance(config);
-                }
+                return instance(config);
+            }
+            else{
+                await sessionService.errorHandler( error);
             }
 
         }

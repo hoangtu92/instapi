@@ -8,7 +8,7 @@ require('dotenv').config();
 
 const {getProfile, searchProfile, getPosts, getStories, getHighLightsPreview, getHighLights, getMediaInfo, getReels,
     getSimplePosts
-} = require("./src/controller/instagramController");
+} = require("./src/controller/ig.controller");
 const {postBack} = require("./src/controller/email.controller");
 
 
