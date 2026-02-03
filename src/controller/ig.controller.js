@@ -228,7 +228,7 @@ const getHighLightsPreview = async (req, res) => {
 
     // Adjust variable params according to api
     const results = await request(type, postData).then(data => {
-        return {
+        return data ? {
             results: data.edges?.map(e => ({
                 type: "highlight",
                 title: e.node.title,
@@ -237,7 +237,7 @@ const getHighLightsPreview = async (req, res) => {
                 url: e.node.cover_media.cropped_image_version?.url
             })) || [],
             page_info: data.page_info
-        }
+        } : null
     });
 
     res.json(results);
