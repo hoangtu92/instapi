@@ -223,7 +223,10 @@ const getHighLightsPreview = async (req, res) => {
                 url: e.node.cover_media.cropped_image_version?.url
             })) || [],
             page_info: data.page_info
-        } : []
+        } : {
+            results: [],
+            page_info: null
+        }
     });
 
     res.json(results);
@@ -303,7 +306,10 @@ const getReels = async (req, res) => {
                 image_versions2: e.image_versions2.candidates
             })) || [],
             page_info: data.page_info
-        } : []
+        } : {
+            results: [],
+            page_info: null
+        }
     });
 
     res.json(results);
