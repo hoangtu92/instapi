@@ -7,3 +7,4 @@ package-lock.json
 Instapi.iml
 storages/cookies/*
 storages/params/*
+storages/accounts.json

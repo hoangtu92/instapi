@@ -1,8 +1,8 @@
 const axios = require("axios");
-const {HttpsProxyAgent} = require("https-proxy-agent");
 const {USER_AGENT} = require("../constants/browser.constant");
 const sessionService = require("../services/session.service")
 const LOG = require("../helpers/log");
+const Helper = require("../helpers/helpers");
 
 const instance = axios.create({
     timeout: 30000,
@@ -56,7 +56,7 @@ instance.interceptors.request.use(
 
         /* ---- Inject proxy ---- */
         if (acc.proxy_host) {
-            const agent = new HttpsProxyAgent(`http://${acc.proxy_username}:${acc.proxy_pass}@${acc.proxy_host}:${acc.proxy_port}`);
+            const agent = Helper.getHttpAgent(acc);
 
             config.httpsAgent = agent;
             config.httpAgent = agent;
@@ -91,24 +91,16 @@ instance.interceptors.response.use(
             /**
              * 🚫 COOKIE FAILURE → NO RETRY
              */
-            if([401, 403].includes(status)){
+            if([401, 403, 407].includes(status)){
 
                 if (config.meta.retryCount === 0) {
                     config.meta.retryCount++;
 
-                    try{
-                        await sessionService.handleUnauthorized( {ig_username: meta.ig_username, status});
+                    delete config.headers.cookie;
+                    delete config.headers["x-csrftoken"];
+                    delete config.headers["x-ig-app-id"];
 
-                        delete config.headers.cookie;
-                        delete config.headers["x-csrftoken"];
-                        delete config.headers["x-ig-app-id"];
-
-                        return instance(config);
-
-                    }
-                    catch (e) {
-                        LOG.error("Rebuild failed.");
-                    }
+                    return instance(config);
                 }
             }
 

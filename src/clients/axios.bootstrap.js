@@ -1,6 +1,7 @@
 const axios = require("axios");
 const {HttpsProxyAgent} = require("https-proxy-agent");
 const {USER_AGENT} = require("../constants/browser.constant");
+const Helper = require("../helpers/helpers");
 
 const instance = axios.create({
     timeout: 15000,
@@ -30,7 +31,7 @@ instance.interceptors.request.use(
 
         /* ---- Inject proxy ---- */
         if (acc.proxy_host) {
-            const agent = new HttpsProxyAgent(`http://${acc.proxy_username}:${acc.proxy_pass}@${acc.proxy_host}:${acc.proxy_port}`);
+            const agent = Helper.getHttpAgent(acc);
 
 
             config.httpsAgent = agent;

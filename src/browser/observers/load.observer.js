@@ -18,6 +18,13 @@ function attachOnLoadPageEvent(page, config, headless){
         const issue = await issueDetectionHelper(page);
 
         //await handleConsent(page);
+        try{
+            await page.waitForSelector("text/Allow all cookies");
+            await page.click("text/Allow all cookies");
+        }
+        catch (e) {
+
+        }
 
         switch (issue) {
             case LOGIN_REQUIRED:

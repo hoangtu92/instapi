@@ -4,9 +4,6 @@
  * @returns {Promise<unknown>}
  */
 const LOG = require("./log");
-const Config = require("../services/config.service");
-const fs = require("fs");
-const path = require("path");
 const crypto = require("crypto");
 const {HttpsProxyAgent} = require("https-proxy-agent");
 
@@ -38,8 +35,7 @@ class Helper{
      *
      * @returns {HttpsProxyAgent<string>}
      */
-    static async getHttpAgent () {
-        let config = await Config.getCurrentConfig();
+    static async getHttpAgent (config) {
         let proxy_str = `http://${config.proxy_username}:${config.proxy_pass}@${config.proxy_host}:${config.proxy_port}`;
         return new HttpsProxyAgent(proxy_str);
     }

@@ -11,7 +11,9 @@ class ParamsService {
      * Ensure params directory exists
      */
     ensureDir() {
-        fs.mkdir(PARAMS_DIR, { recursive: true }, null);
+        fs.mkdir(PARAMS_DIR, { recursive: true }, () => {
+            console.log("Params directory exists")
+        });
     }
     /**
      *

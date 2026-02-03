@@ -1,13 +1,11 @@
 const fs = require("fs");
 const path = require("path");
 const LOG = require("../helpers/log");
-const Redis = require("../infra/redis");
 
 class ConfigService {
 
     constructor() {
         this.accountsPath = path.resolve(process.cwd(), "storages/accounts.json");
-        this.configsPath  = path.resolve(process.cwd(), "storages/config.json");
     }
 
     /**
@@ -45,30 +43,39 @@ class ConfigService {
         }
     }
 
+    /**
+     *
+     * @returns {Promise<null|any>}
+     */
+    async getConfigs() {
+        try{
+            const fileConfig = this.readJson(this.accountsPath);
+            if (fileConfig) {
+                return fileConfig;
+            }
+        }
+        catch (e) {
+            LOG.error("Invalid config file");
+        }
+
+        return null;
+    }
 
     /**
      *
-     * @returns {Promise<*|null>}
+     * @param config
+     * @returns {Promise<void>}
      */
-    async getCurrentConfig() {
-
-        try {
-            const cached = await Redis.get("instapi_config");
-            if(cached) return JSON.parse(cached);
-        }
-        catch (e) {
-            LOG.error("Invalid config in Redis, reloading from file");
-        }
-        const fileConfig = this.readJson(this.configsPath);
-        if (fileConfig) {
-            await Redis.set("instapi_config", JSON.stringify(fileConfig));
-            return fileConfig;
-        }
-        return null
+    async saveConfigs(config) {
+        this.saveJson(this.accountsPath, config);
     }
 
 
-
+    /**
+     *
+     * @param ig_username
+     * @returns {null|*}
+     */
     getConfig(ig_username){
         const accounts = this.readJson(this.accountsPath);
 
@@ -76,18 +83,6 @@ class ConfigService {
             return accounts.find(e => e.ig_username === ig_username);
         }
         return null;
-    }
-
-    /**
-     *
-     * @param config
-     * @returns {Promise<*>}
-     */
-    async setCurrentConfig(config) {
-        this.saveJson(this.configsPath, config);
-        await Redis.set("instapi_config", JSON.stringify(config));
-        LOG.log("Account changed to: ", config.ig_username);
-        return config;
     }
 
 }

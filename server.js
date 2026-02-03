@@ -3,18 +3,20 @@ const cors = require("cors");
 const app = express();
 const LOG = require("./src/helpers/log");
 const Config = require("./src/services/config.service");
-const fs = require("fs");
 
 require('dotenv').config();
 
 const {getProfile, searchProfile, getPosts, getStories, getHighLightsPreview, getHighLights, getMediaInfo, getReels,
     getSimplePosts
 } = require("./src/controller/instagramController");
-const {google} = require("googleapis");
+const {postBack} = require("./src/controller/email.controller");
 
 
 
-app.use(cors({origin: "*"}));
+app.use(cors({origin: [
+        "https://privateig.com",
+        "https://www.privateig.com"
+    ]}));
 app.use(express.json());
 
 app.get("/", async (req, res) => {
@@ -64,30 +66,11 @@ app.get("/reels", getReels);
  */
 app.get("/media-info", getMediaInfo);
 
-app.get("/gmail_postback", async (req, res) => {
-
-    if(!req.query.code) return res.status(403);
-
-    const creds = JSON.parse(fs.readFileSync('credentials.json', 'utf-8'));
-    const auth = new google.auth.OAuth2(
-        creds.web.client_id,
-        creds.web.client_secret,
-        "https://cdn-api.privateig.com/gmail_postback"
-    );
-
-    const { tokens } = await auth.getToken(req.query.code);
-    fs.writeFileSync('token.json', JSON.stringify(tokens));
-    console.log('Token saved to token.json');
-    res.status(200);
-
-});
+app.get("/gmail_postback", postBack);
 
 
 // 🖥 Start server
 const PORT = process.env.SERVER_PORT || 3000;
 app.listen(PORT, async () => {
     LOG.log(`API server running on port ${PORT}`);
-
-    const config = await Config.getCurrentConfig();
-    LOG.log("Current account", config.ig_username);
 });

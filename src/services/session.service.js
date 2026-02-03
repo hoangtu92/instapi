@@ -10,20 +10,13 @@ const CURRENT_SESSION_KEY = "instapi:current_session"
 class SessionService {
     async ensureValidSession (){
 
-        try{
-            const cached = await Redis.get(CURRENT_SESSION_KEY);
-            if(cached) return JSON.parse(cached);
-        }
-        catch (e) {}
 
-
-        const config = await ConfigService.getCurrentConfig();
+        const config = await this.getRandomAccount();
 
 
         if(!config){
-            throw new Error("No active config available");
+            throw new Error("No config available");
         }
-
 
         const ig_username = config.ig_username;
 
@@ -52,29 +45,6 @@ class SessionService {
 
     }
 
-    async handleUnauthorized({ig_username, status}){
-
-        // Delete current session.
-        await Redis.del(CURRENT_SESSION_KEY);
-
-
-        let config = await this.getRandomAccount();
-
-        if(config && config.ig_username !== ig_username){
-
-
-            if(CookieService.available(config.ig_username) && ParamsService.available(config.ig_username)){
-                // switch to new random account when cookie and params are found
-                await ConfigService.setCurrentConfig(config);
-                return true;
-            }
-
-        }
-
-        // same account rebuild params once
-        return await this.rebuild(config);
-
-    }
 
     /**
      * Lightweight rebuild (Axios only)
@@ -132,44 +102,69 @@ class SessionService {
         }
     }
 
-
     /**
      *
-     * @returns {Promise<boolean|*>}
+     * @returns {Promise<string|Buffer<ArrayBufferLike>>}
      */
-    async getRandomAccount() {
-        const currentConfig = await ConfigService.getCurrentConfig();
+    async getSessions() {
+        try {
+            let sessions = await Redis.get(CURRENT_SESSION_KEY);
+            if(sessions) return JSON.parse(sessions);
+        }
+        catch (e) {
+            LOG.error("Invalid config in Redis, reloading from file");
+        }
 
         try{
-            const accounts = ConfigService.readJson(ConfigService.accountsPath);
+            const accounts = await ConfigService.getConfigs();
             const candidates = accounts.filter(
-                acc => acc.ig_username !== currentConfig?.ig_username
+                acc => acc.active
                     && ParamsService.available(acc.ig_username)
                     && CookieService.available(acc.ig_username)
 
             );
             if(candidates.length){
-                const index = Math.floor(Math.random() * candidates.length);
 
-                return candidates[index];
+                return candidates.map(config => {
+                    const ig_username = config.ig_username;
+
+                    const params = ParamsService.get(ig_username);
+                    const cookies = CookieService.get(ig_username);
+
+                    return {
+                        params,
+                        cookie: CookieService.serialize(cookies),
+                        config
+                    }
+                })
             }
 
         }
         catch (e) {
-            return currentConfig;
+            LOG.error("Config error", e.message)
         }
 
+        return null;
     }
+
 
     /**
      *
      * @returns {Promise<boolean|*>}
      */
-    async setRandomAccount() {
-        await Redis.del(CURRENT_SESSION_KEY);
-        const account = await this.getRandomAccount();
-        if(account)
-            return ConfigService.setCurrentConfig(account);
+    async getRandomAccount(ig_username = null) {
+
+        let sessions = await this.getSessions();
+
+        if(sessions){
+            if(ig_username){
+                sessions = sessions.filter(e => e.config.ig_username !== ig_username);
+            }
+            const index = Math.floor(Math.random() * sessions.length);
+            return sessions[index]
+        }
+
+        return null;
     }
 }
 

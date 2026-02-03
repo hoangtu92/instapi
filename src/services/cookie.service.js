@@ -13,7 +13,9 @@ class CookieService {
      * Ensure params directory exists
      */
     ensureDir() {
-        fs.mkdir(COOKIE_DIR, { recursive: true }, null);
+        fs.mkdir(COOKIE_DIR, { recursive: true }, () => {
+            console.log("Cookies directory exists")
+        });
     }
     /**
      *
