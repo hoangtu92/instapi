@@ -13,9 +13,6 @@ class SessionService {
 
         const session = await this.getRandomSession();
 
-        LOG.debug("Session: ", session.config.ig_username)
-
-
         if(!session){
             throw new Error("No config available");
         }
@@ -28,6 +25,8 @@ class SessionService {
         if(!session.cookie){
             throw new Error("No cookie available");
         }
+
+        LOG.debug("Session: ", session.config.ig_username)
 
         return session;
 
