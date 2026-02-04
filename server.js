@@ -15,7 +15,8 @@ const {postBack} = require("./src/controller/email.controller");
 
 app.use(cors({origin: [
         "https://privateig.com",
-        "https://www.privateig.com"
+        "https://www.privateig.com",
+        "https://staging.followerfast.com",
     ]}));
 app.use(express.json());
 
