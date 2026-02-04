@@ -239,9 +239,12 @@ const getHighLightsPreview = async (req, res) => {
  * @returns {Promise<*>}
  */
 const getHighLights = async (req, res) => {
-    const initial_reel_id = req.query.initial_reel_id;
-    const reel_ids = req.query.reel_ids;
-    if (!initial_reel_id) return res.status(400).json({error: "No highlight Id provided"});
+    let reel_ids = req.query.reel_ids;
+    if (!reel_ids) return res.status(400).json({error: "No highlight Id provided"});
+
+    if(typeof reel_ids === "string"){
+        reel_ids = [reel_ids];
+    }
 
     const type = "PolarisStoriesV3HighlightsPageQuery";
 

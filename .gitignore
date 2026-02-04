@@ -8,3 +8,4 @@ Instapi.iml
 storages/cookies/*
 storages/params/*
 storages/*.json
+proxies.info
