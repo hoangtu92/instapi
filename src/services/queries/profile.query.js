@@ -11,9 +11,10 @@ function profileQuery(profile_id){
             "render_surface": "PROFILE",
             "__relay_internal__pv__PolarisCannesGuardianExperienceEnabledrelayprovider": true,
             "__relay_internal__pv__PolarisCASB976ProfileEnabledrelayprovider": false,
+            "__relay_internal__pv__PolarisWebSchoolsEnabledrelayprovider": false,
             "__relay_internal__pv__PolarisRepostsConsumptionEnabledrelayprovider": false
         }),
-        "doc_id": "25980296051578533"
+        "doc_id": "26672929172408668"
     }
 
 }
