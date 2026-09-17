@@ -17,6 +17,7 @@ app.use(cors({origin: [
         "https://privateig.com",
         "https://www.privateig.com",
         "https://staging.followerfast.com",
+        "https://followerfabrik.de"
     ]}));
 app.use(express.json());
 

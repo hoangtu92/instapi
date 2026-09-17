@@ -11,7 +11,7 @@ module.exports = {
         pick: res =>
             res?.data
                 ?.xdt_api__v1__fbsearch__topsearch_connection
-                ?.users ?? null,
+                ?.users ?? [],
     },
 
     PolarisProfilePageContentQuery: {

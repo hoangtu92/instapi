@@ -104,7 +104,7 @@ async function request(type, postData, hour = 1){
         }
     }
     catch (e) {
-
+        console.log(e)
         return null;
     }
 

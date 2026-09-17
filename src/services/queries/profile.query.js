@@ -8,13 +8,14 @@ function profileQuery(profile_id){
         "variables": JSON.stringify({
             "enable_integrity_filters": true,
             "id": profile_id,
-            "render_surface": "PROFILE",
             "__relay_internal__pv__PolarisCannesGuardianExperienceEnabledrelayprovider": true,
             "__relay_internal__pv__PolarisCASB976ProfileEnabledrelayprovider": false,
             "__relay_internal__pv__PolarisWebSchoolsEnabledrelayprovider": false,
-            "__relay_internal__pv__PolarisRepostsConsumptionEnabledrelayprovider": false
+            "__relay_internal__pv__PolarisRepostsConsumptionEnabledrelayprovider": false,
+            "__relay_internal__pv__PolarisShortDramaEnabledrelayprovider":false,
+            "__relay_internal__pv__PolarisLongformEnabledrelayprovider":false
         }),
-        "doc_id": "26672929172408668"
+        "doc_id": "38611279431804694"
     }
 
 }

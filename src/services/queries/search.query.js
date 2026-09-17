@@ -12,6 +12,7 @@ function searchQuery(query){
                 "include_reel": "true",
                 "query": query,
                 "rank_token": "",
+                "search_session_id":"8dd1aa99-7b5b-49c6-988c-a7a4fd1dd90a",
                 "search_surface": "web_top_search"
             },
             "hasQuery": true
